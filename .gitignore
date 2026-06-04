@@ -1,0 +1,26 @@
+# @file Documentation repository ignore rules
+# @author PopoY
+# @created 2026-06-04
+# @purpose Ignore local editor files, OS junk, logs, caches, and build artifacts for this documentation-first repository.
+
+# macOS
+.DS_Store
+
+# editors
+.idea/
+.vscode/
+
+# logs and caches
+*.log
+.cache/
+
+# Node.js
+node_modules/
+dist/
+build/
+coverage/
+
+# local environment files
+.env
+.env.local
+.env.*.local
