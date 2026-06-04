@@ -5,9 +5,8 @@
   // @purpose Configure the shared domain package with strict TypeScript defaults and ESM output assumptions.
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
-    "rootDir": "./src",
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "noEmit": true
   },
   "include": [

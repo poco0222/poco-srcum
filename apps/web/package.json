@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@poco-scrum/domain": "workspace:*",
+    "@poco-scrum/shared": "workspace:*",
     "next": "^16.0.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
@@ -14,8 +16,8 @@
   "scripts": {
     "dev": "next dev",
     "lint": "node -e \"console.log('web lint placeholder')\"",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "node -e \"console.log('web test placeholder')\"",
+    "typecheck": "next typegen && tsc --noEmit -p tsconfig.json",
+    "test": "node --conditions=source --import tsx --test src/**/*.spec.ts",
     "build": "next build"
   }
 }

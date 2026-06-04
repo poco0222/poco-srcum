@@ -6,7 +6,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  reactStrictMode: true
+  reactStrictMode: true,
+  transpilePackages: ["@poco-scrum/domain", "@poco-scrum/shared"]
 };
 
 export default nextConfig;

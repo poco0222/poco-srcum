@@ -2,7 +2,7 @@
 
 > Author: PopoY
 > Created: 2026-06-04
-> Status: planned
+> Status: done
 > Phase: P1
 > Parent Spec: `phase-01-scrum-core-spec.md`
 > Parent Plan: `phase-01-scrum-core-spec-plan.md`
@@ -89,6 +89,72 @@ Scrum 系统是否成立，关键看 Sprint 是否被当作正式承诺对象，
   - `apps/api/src/modules/blockers/*`
   - `apps/web/src/app/(authenticated)/sprints/*`
   - `tests/e2e/sprints/*.spec.ts`
+
+## Execution Progress
+
+| Step | Status | Progress | Notes |
+| --- | --- | --- | --- |
+| Step 1 | done | 1/8 | 已冻结 `SprintStatus`、允许迁移表、共享状态机守卫，并完成 domain/API 定向回归测试 |
+| Step 2 | done | 2/8 | 已落 `Sprint / SprintCommitment / SprintDailyUpdate` 模型、migration 和 shared Sprint DTO，并通过 Prisma / typecheck 验证 |
+| Step 3 | done | 3/8 | 已交付 `SprintsModule`、in-memory repository / service / controller 和生命周期 API，并完成定向回归测试 |
+| Step 4 | done | 4/8 | 已交付 Planning service、`/sprints/:id/planning` 入口、承诺项落库与 `start sprint` 前置校验，并验证未 Ready Story 会被拒绝 |
+| Step 5 | done | 5/8 | 已交付 Sprint board、状态推进、daily update 时间线、`/sprints` 前端壳子与相关 API，并完成 web build 验证 |
+| Step 6 | done | 6/8 | 已交付 Blocker 与 Scope Change 最小事件模型、API 入口和回归测试，活跃 Sprint 的范围变更已可追溯 |
+| Step 7 | done | 7/8 | 已交付 `ClosureService`、Retrospective 入口与 `/sprints/[sprintId]/summary` 页面壳子，并完成收尾测试 |
+| Step 8 | done | 8/8 | 已补完整 Sprint e2e、Sprint smoke-check runbook，并完成 API/web/e2e 最终验证 |
+
+### Latest Evidence
+
+- `git remote get-url origin` confirmed `https://github.com/poco0222/poco-srcum.git`
+- `git branch --show-current` returned `main`, and the current workspace already contains unrelated in-progress changes, so Task 3 will proceed with narrow scoped edits
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/domain test -- sprint` passed before Sprint domain files were added, confirming no prior Sprint-specific domain coverage exists
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/api test -- sprint-state-machine` passed before Sprint API tests were added, confirming `Task 3 Step 1` still needs explicit RED coverage
+- `apps/api/test/sprint-state-machine.spec.ts` created first and failed with `TypeError: Cannot read properties of undefined (reading 'PLANNED')`, proving the Sprint lifecycle exports were still missing before implementation
+- `packages/domain/src/sprints/sprint.enums.ts` and `packages/domain/src/sprints/sprint.machine.ts` created with the frozen `DRAFT -> PLANNED -> ACTIVE -> ENDED -> CLOSED` contract
+- `packages/domain/src/sprints/sprint.domain.spec.ts` created to lock the shared Sprint enum and transition guard at the domain package boundary
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/domain test -- sprint` passed after the Sprint domain exports were wired into `packages/domain/src/index.ts`
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/domain typecheck` passed after adding Sprint exports
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/api exec tsx --tsconfig tsconfig.json --test test/sprint-state-machine.spec.ts` passed with the new shared lifecycle guard
+- `packages/domain/src/sprints/sprint.types.ts` created with `SprintRecord`, `SprintPlanningSnapshot`, `SprintCommitmentRecord`, and `SprintDailyUpdateRecord`
+- `packages/shared/src/sprints/sprint.schemas.ts` and `packages/shared/src/sprints/sprint.schemas.spec.ts` created to freeze `CreateSprintInput` and `UpdateSprintPlanningInput` contracts
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/shared test -- sprint` first failed because `../index` did not yet export `CreateSprintInputSchema`, then passed after the shared package exports were wired in
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/shared typecheck` passed after fixing the Sprint shared exports and status typing
+- `apps/api/prisma/schema.prisma` updated with `SprintStatus`, `Sprint`, `SprintCommitment`, and `SprintDailyUpdate` plus the `WorkItem.sprint` relation
+- `apps/api/prisma/migrations/20260604170500_task03_sprint_models/migration.sql` created for the Sprint planning baseline tables and foreign keys
+- `DATABASE_URL=postgresql://placeholder:placeholder@127.0.0.1:5432/poco_scrum COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/api exec prisma validate --schema prisma/schema.prisma` first failed because `SprintDailyUpdate.author` was missing the `User` opposite relation, then passed after adding `User.sprintDailyUpdates`
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/api typecheck` passed with the new Sprint schema and shared DTO exports in place
+- `apps/api/test/sprint-lifecycle.spec.ts` created first and failed with `404 !== 201`, proving the `/sprints` routes did not exist before the Step 3 implementation
+- `apps/api/src/modules/sprints/contracts/create-sprint.dto.ts` created to reuse the shared `CreateSprintInputSchema` contract at the controller boundary
+- `apps/api/src/modules/sprints/sprints.repository.ts`, `sprints.service.ts`, `sprints.controller.ts`, and `sprints.module.ts` created with the minimum in-memory Sprint lifecycle implementation
+- `apps/api/src/app.module.ts` updated to register `SprintsModule` without changing the existing health, auth, or backlog modules
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/api exec tsx --tsconfig tsconfig.json --test test/sprint-lifecycle.spec.ts` passed for `create / start / end / close` plus the invalid repeated `close` negative path
+- `apps/api/test/sprint-planning.spec.ts` created first and failed with `Cannot find module '../src/modules/sprints/planning.service'`, proving the planning layer did not exist before Step 4
+- `apps/api/src/modules/sprints/contracts/update-planning.dto.ts` and `planning.service.ts` created to freeze the planning payload, planning snapshot, and `start sprint` readiness guard
+- `apps/api/src/modules/sprints/sprints.repository.ts` extended with in-memory `SprintCommitment` persistence so Planning, Lifecycle, and future Board views reuse one Sprint aggregate source
+- `apps/api/src/modules/work-items/work-items.module.ts` now exports `InMemoryWorkItemsRepository`, and `apps/api/src/modules/sprints/sprints.module.ts` now wires `PlanningService` with the shared work item repository
+- `apps/api/src/modules/sprints/sprints.controller.ts` now exposes `POST /sprints/:sprintId/planning` and reuses the shared `UpdateSprintPlanningInputSchema`
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/api exec tsx --tsconfig tsconfig.json --test test/sprint-planning.spec.ts` passed for goal capture, commitment persistence, ready-gate rejection, and `SPRINT_PLANNING_INCOMPLETE`
+- `apps/api/test/sprint-lifecycle.spec.ts` was updated to record Sprint planning before `start`, keeping Step 3 lifecycle coverage aligned with the new Step 4 precondition instead of allowing a regression between steps
+- `apps/api/test/sprint-daily-update.spec.ts` created first and failed with `Cannot find module '../src/modules/sprints/daily-updates.service'`, proving the execution-phase board service did not exist before Step 5
+- `apps/api/src/modules/sprints/daily-updates.service.ts` created with `getBoard`, board column transitions, daily update recording, and newest-first timeline sorting
+- `apps/api/src/modules/sprints/contracts/board-column.dto.ts` and `daily-update.dto.ts` created for board move and daily update request parsing
+- `apps/api/src/modules/sprints/sprints.controller.ts` now exposes `GET /sprints/:sprintId/board`, `POST /sprints/:sprintId/board/move`, and `GET/POST /sprints/:sprintId/daily-updates`
+- `apps/api/src/modules/work-items/work-items.repository.ts`, `work-items.service.ts`, and `work-items.controller.ts` now support optional `sprintId` filtering so Sprint views and Backlog views reuse the same work item store
+- `apps/web/src/features/sprints/*` and `apps/web/src/app/(authenticated)/sprints/*` now provide a standalone Sprint overview page, Sprint detail board page, server actions, API client, board shell, and daily update form/timeline
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/api exec tsx --tsconfig tsconfig.json --test test/sprint-daily-update.spec.ts` first failed because the timeline sort was unstable, then passed after adding the `createdAt + id` tie-break ordering
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/web test -- sprint` passed for the new Sprint client and form helper tests
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/web typecheck` passed after route generation for `/sprints` and `/sprints/[sprintId]`
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/web build` passed and generated `/sprints` plus `/sprints/[sprintId]`
+- `apps/api/test/sprint-scope-change.spec.ts` created first and failed because `blockers.service.ts` did not exist, then passed after the blocker and scope-change services were implemented
+- `apps/api/src/modules/blockers/blockers.service.ts` and `apps/api/src/modules/sprints/scope-change.service.ts` created with append-only blocker and scope event records
+- `apps/api/src/modules/sprints/sprints.controller.ts` now exposes `POST /sprints/:id/blockers`, `POST /sprints/:id/blockers/:blockerId/resolve`, `POST /sprints/:id/scope/in`, `POST /sprints/:id/scope/out`, and `GET /sprints/:id/scope-events`
+- `apps/api/test/sprint-close-retrospective.spec.ts` created first and failed because `closure.service.ts` did not exist, then passed after the closure service was implemented
+- `apps/api/src/modules/sprints/closure.service.ts` created with the minimum `ended -> retrospective record` contract and Sprint back-reference update
+- `apps/web/src/app/(authenticated)/sprints/[sprintId]/summary/page.tsx` created with the minimum retrospective entry shell for Sprint close-out
+- `tests/e2e/sprints/full-sprint-flow.spec.ts` created and passed for the full path: create Sprint -> planning -> board move -> daily update -> scope out -> end -> retrospective -> close
+- `docs/runbooks/p1-sprint-flow-smoke-check.md` created with the Sprint smoke-check commands and manual verification checklist
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/api exec tsx --tsconfig tsconfig.json --test ../../tests/e2e/sprints/full-sprint-flow.spec.ts` passed for the happy path and the unready-story negative path
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/web build` passed and generated `/sprints/[sprintId]/summary` in addition to the overview and board pages
 
 ## Steps
 

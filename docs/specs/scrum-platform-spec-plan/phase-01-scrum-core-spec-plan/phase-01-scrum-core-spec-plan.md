@@ -37,9 +37,9 @@
 | Task | Goal | Status |
 | --- | --- | --- |
 | `task-01-project-bootstrap-and-foundation.md` | 建立项目骨架、基础权限、核心约束 | done (7/7) |
-| `task-02-work-item-and-backlog.md` | 建立统一工作项模型和 Backlog 主流程 | planned |
-| `task-03-sprint-and-execution.md` | 建立 Sprint 计划、执行、看板、阻塞主链路 | planned |
-| `task-04-acceptance-doc-preview-notification.md` | 建立验收、最小文档、基础交付附件挂接与通知闭环 | planned |
+| `task-02-work-item-and-backlog.md` | 建立统一工作项模型和 Backlog 主流程 | done (7/7) |
+| `task-03-sprint-and-execution.md` | 建立 Sprint 计划、执行、看板、阻塞主链路 | done (8/8) |
+| `task-04-acceptance-doc-preview-notification.md` | 建立验收、最小文档、基础交付附件挂接与通知闭环 | done (8/8) |
 
 ## Milestone
 

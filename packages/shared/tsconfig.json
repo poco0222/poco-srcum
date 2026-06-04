@@ -5,9 +5,8 @@
   // @purpose Configure shared DTO and validation schema sources with strict TypeScript defaults.
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
-    "rootDir": "./src",
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "noEmit": true
   },
   "include": [

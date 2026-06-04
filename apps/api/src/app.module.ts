@@ -5,8 +5,15 @@
  */
 import { Controller, Get, Module } from "@nestjs/common";
 
+import { AcceptanceModule } from "./modules/acceptance/acceptance.module";
+import { AttachmentsModule } from "./modules/attachments/attachments.module";
+import { AuditModule } from "./modules/audit/audit.module";
 import { AuthModule } from "./modules/auth/auth.module";
+import { DocumentsModule } from "./modules/documents/documents.module";
+import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { ProjectsModule } from "./modules/projects/projects.module";
+import { SprintsModule } from "./modules/sprints/sprints.module";
+import { WorkItemsModule } from "./modules/work-items/work-items.module";
 
 /**
  * @description Exposes the minimum health endpoint required by the bootstrap smoke test.
@@ -24,7 +31,17 @@ class HealthController {
 }
 
 @Module({
-  imports: [AuthModule, ProjectsModule],
+  imports: [
+    AcceptanceModule,
+    AttachmentsModule,
+    AuditModule,
+    AuthModule,
+    DocumentsModule,
+    NotificationsModule,
+    ProjectsModule,
+    SprintsModule,
+    WorkItemsModule
+  ],
   controllers: [HealthController]
 })
 export class AppModule {}

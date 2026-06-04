@@ -2,7 +2,7 @@
 
 > Author: PopoY
 > Created: 2026-06-04
-> Status: planned
+> Status: done
 > Phase: P1
 > Parent Spec: `phase-01-scrum-core-spec.md`
 > Parent Plan: `phase-01-scrum-core-spec-plan.md`
@@ -90,6 +90,102 @@
   - `apps/api/src/modules/notifications/*`
   - `apps/web/src/app/(authenticated)/stories/[storyId]/acceptance/*`
   - `apps/web/src/features/documents/*`
+
+## Execution Progress
+
+| Step | Status | Progress | Notes |
+| --- | --- | --- | --- |
+| Step 1 | done | 1/8 | 已冻结 `AcceptanceStatus`、允许迁移表、Story 完成态验收门禁，并完成 domain/API 定向回归测试 |
+| Step 2 | done | 2/8 | 已落 `StoryAcceptanceRecord`、`AcceptanceStatus` Prisma enum、migration 和 shared `approve / reject / reopen` DTO，并通过 Prisma / typecheck 验证 |
+| Step 3 | done | 3/8 | 已交付独立 `AcceptanceModule`、`approve / reject / reopen / history` API，以及 `WorkItemsService.completeStory` 的 Story 完成态验收门禁 |
+| Step 4 | done | 4/8 | 已交付独立 `DocumentsModule`、`Document` / `DocumentTargetType` 模型、shared document DTO，以及创建、更新、读取、按目标查询接口 |
+| Step 5 | done | 5/8 | 已交付 `DocumentEditor`、`DocumentPreview` 和无新增依赖的 P1 Markdown 白名单渲染 / sanitization |
+| Step 6 | done | 6/8 | 已交付 `DocumentLinksService`、`AttachmentsService`、附件元数据模型、文档链接模型和图片/PDF 预览白名单 |
+| Step 7 | done | 7/8 | 已冻结验收和文档关键通知事件，并交付 in-app notification service、Prisma `Notification` 模型和前端最小通知列表 |
+| Step 8 | done | 8/8 | 已交付 `MinimalAuditService`、Prisma `OperationAuditLog`、P1 acceptance smoke-check runbook，并完成 Task4 定向验证与根级 build |
+
+### Latest Evidence
+
+- `git remote get-url origin` confirmed `https://github.com/poco0222/poco-srcum.git`
+- `git status --short --branch` showed current branch `main` with existing uncommitted Task2/Task3 changes, so Task4 proceeds with narrow scoped edits in the current workspace instead of creating a branch that would mix prior work
+- `packages/domain/src/acceptance/acceptance.domain.spec.ts` was created first and failed with `SyntaxError: The requested module '../index' does not provide an export named 'AcceptanceStatus'`, proving the acceptance state machine export did not exist before Step 1 implementation
+- `apps/api/test/story-acceptance-state-machine.spec.ts` was created first and failed with `Cannot find module '../src/modules/work-items/guards/story-done.guard'`, proving the Story completion acceptance guard did not exist before Step 1 implementation
+- `packages/domain/src/acceptance/acceptance.enums.ts` and `packages/domain/src/acceptance/acceptance.machine.ts` created with the frozen `PENDING -> APPROVED / REJECTED -> REOPENED -> APPROVED / REJECTED` contract
+- `apps/api/src/modules/work-items/guards/story-done.guard.ts` created with `STORY_ACCEPTANCE_NOT_APPROVED` enforcement for Story completion
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/domain test -- acceptance` passed with 10 tests, 0 failures
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/api exec tsx --tsconfig tsconfig.json --test test/story-acceptance-state-machine.spec.ts` passed with 2 tests, 0 failures
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/domain typecheck` passed after adding acceptance exports
+- `apps/api/test/story-acceptance-audit-fields.spec.ts` was created first and failed with `TypeError: Cannot read properties of undefined (reading 'parse')`, proving the shared acceptance DTO schemas did not exist before Step 2 implementation
+- `packages/domain/src/acceptance/acceptance.types.ts` created with `StoryAcceptanceRecord` so approval, rejection, and reopen audit fields are represented at the domain boundary
+- `packages/shared/src/acceptance/acceptance.schemas.ts` created with `ApproveStoryAcceptanceInputSchema`, `RejectStoryAcceptanceInputSchema`, and `ReopenStoryAcceptanceInputSchema`
+- `apps/api/prisma/schema.prisma` updated with `AcceptanceStatus`, `StoryAcceptanceRecord`, and relations to `WorkItem` and `User`
+- `apps/api/prisma/migrations/20260604183000_task04_acceptance_records/migration.sql` created for the Story acceptance record baseline table and indexes
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/api exec tsx --tsconfig tsconfig.json --test test/story-acceptance-audit-fields.spec.ts` passed with 3 tests, 0 failures
+- `DATABASE_URL=postgresql://placeholder:placeholder@127.0.0.1:5432/poco_scrum COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/api exec prisma validate --schema prisma/schema.prisma` passed with `The schema at prisma/schema.prisma is valid`
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/shared typecheck` passed after adding acceptance DTO exports
+- `apps/api/test/story-acceptance.spec.ts` was created first and failed with `404 !== 200`, proving `/acceptance/stories/:storyId/*` routes did not exist before Step 3 implementation
+- `apps/api/test/story-done-guard.spec.ts` was created first and failed with `TypeError: service.completeStory is not a function`, proving the explicit Story completion command did not exist before Step 3 implementation
+- `apps/api/src/modules/acceptance/acceptance.repository.ts`, `acceptance.service.ts`, `acceptance.controller.ts`, and `acceptance.module.ts` created with the minimum in-memory formal acceptance command API
+- `apps/api/src/app.module.ts` now registers `AcceptanceModule` alongside the existing auth, project, sprint, and work item modules
+- `apps/api/src/modules/work-items/work-items.service.ts` now exposes `completeStory` and calls `StoryDoneGuard` before setting Story status to `DONE`
+- `apps/api/src/modules/work-items/work-items.controller.ts` now exposes `POST /work-items/:workItemId/complete`
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/api exec tsx --tsconfig tsconfig.json --test test/story-acceptance.spec.ts` passed with 3 tests, 0 failures
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/api exec tsx --tsconfig tsconfig.json --test test/story-done-guard.spec.ts` passed with 2 tests, 0 failures
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/api typecheck` passed after registering the acceptance module and completion command
+- `apps/api/test/document-save.spec.ts` was created first and failed with `Cannot find module '../src/modules/documents/documents.service'`, proving the document service did not exist before Step 4 implementation
+- `packages/domain/src/documents/document.enums.ts` and `packages/domain/src/documents/document.types.ts` created with `DocumentTargetType`, `DocumentStructuredFields`, and `DocumentRecord`
+- `packages/shared/src/documents/document.schemas.ts` created with `CreateDocumentInputSchema` and `UpdateDocumentInputSchema`
+- `apps/api/src/modules/documents/documents.repository.ts`, `documents.service.ts`, `documents.controller.ts`, and `documents.module.ts` created with the minimum Form plus Markdown document API
+- `apps/api/src/app.module.ts` now registers `DocumentsModule`
+- `apps/api/prisma/schema.prisma` updated with `DocumentTargetType` and `Document`, plus author/updater relations to `User`
+- `apps/api/prisma/migrations/20260604184500_task04_documents/migration.sql` created for the minimum Form plus Markdown document model
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/api exec tsx --tsconfig tsconfig.json --test test/document-save.spec.ts` passed with 3 tests, 0 failures
+- `DATABASE_URL=postgresql://placeholder:placeholder@127.0.0.1:5432/poco_scrum COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/api exec prisma validate --schema prisma/schema.prisma` passed with `The schema at prisma/schema.prisma is valid`
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/domain typecheck`, `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/shared typecheck`, and `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/api typecheck` passed after adding document contracts and module registration
+- `apps/web/src/features/documents/__tests__/document-preview.spec.ts` was created first and failed with `Cannot find module '../lib/markdown-sanitize'`, proving the Markdown preview renderer did not exist before Step 5 implementation
+- `apps/web/src/features/documents/lib/markdown-sanitize.ts` created with P1 Markdown whitelist rendering for headings, lists, blockquotes, code blocks, and safe links
+- `apps/web/src/features/documents/components/document-preview.tsx` and `document-editor.tsx` created with sanitized preview wrapping the textarea editor
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/web test -- document-preview` first failed because the test expected a code block without the source semicolon; the expectation was corrected to preserve code content
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/web test -- document-preview` passed with 10 tests, 0 failures after the assertion correction
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/web typecheck` passed after adding the document preview components
+- `apps/api/test/document-attachment-link.spec.ts` was created first and failed with `Cannot find module '../src/modules/attachments/attachments.service'`, proving the attachment metadata service did not exist before Step 6 implementation
+- `apps/web/src/features/documents/__tests__/attachment-preview.spec.ts` was created first and failed with `Cannot find module '../components/attachment-preview'`, proving the attachment preview whitelist did not exist before Step 6 implementation
+- `packages/domain/src/documents/attachment.types.ts` created with `DocumentAttachmentRecord`, `DocumentLinkRecord`, and `AttachmentPreviewKind`
+- `apps/api/src/modules/attachments/attachments.service.ts` and `attachments.module.ts` created with metadata-only document attachment persistence and preview classification
+- `apps/api/src/modules/documents/document-links.service.ts` created with direct document target links and explicit cross-target links
+- `apps/web/src/features/documents/components/attachment-preview.tsx` created with image/PDF inline preview and download fallback
+- `apps/api/prisma/schema.prisma` updated with `DocumentAttachment` and `DocumentLink`
+- `apps/api/prisma/migrations/20260604190000_task04_document_attachments/migration.sql` created for document attachment metadata and links
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/api exec tsx --tsconfig tsconfig.json --test test/document-attachment-link.spec.ts` passed with 2 tests, 0 failures
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/web test -- attachment-preview` passed with 12 tests, 0 failures
+- `DATABASE_URL=postgresql://placeholder:placeholder@127.0.0.1:5432/poco_scrum COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/api exec prisma validate --schema prisma/schema.prisma` passed with `The schema at prisma/schema.prisma is valid`
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/api typecheck`, `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/web typecheck`, and `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/domain typecheck` passed after adding document links and attachment preview support
+- `apps/api/test/notification-triggers.spec.ts` was created first and failed with `Cannot find module '../src/modules/notifications/notifications.service'`, proving the notification service did not exist before Step 7 implementation
+- `apps/web/src/features/notifications/__tests__/notifications.spec.ts` was created first and failed with `Cannot find module '../notification-labels'`, proving the notification presentation helper did not exist before Step 7 implementation
+- `packages/domain/src/notifications/notification.enums.ts` and `notification.types.ts` created with the P1 event set: `ACCEPTANCE_APPROVED`, `ACCEPTANCE_REJECTED`, `ACCEPTANCE_REOPENED`, and `DOCUMENT_UPDATED`
+- `apps/api/src/modules/notifications/notifications.service.ts` and `notifications.module.ts` created with in-app only notification persistence
+- `apps/api/src/modules/acceptance/acceptance.service.ts` now triggers notifications for approval, rejection, and reopen events
+- `apps/api/src/modules/documents/documents.service.ts` now triggers notification for document updates
+- `apps/web/src/features/notifications/notification-labels.ts` and `notifications-list.tsx` created for the minimum notification feed presentation
+- `apps/api/prisma/schema.prisma` updated with `Notification`
+- `apps/api/prisma/migrations/20260604191500_task04_notifications/migration.sql` created for the in-app notification table
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/api exec tsx --tsconfig tsconfig.json --test test/notification-triggers.spec.ts` passed with 2 tests, 0 failures
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/web test -- notifications` passed with 13 tests, 0 failures
+- `DATABASE_URL=postgresql://placeholder:placeholder@127.0.0.1:5432/poco_scrum COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/api exec prisma validate --schema prisma/schema.prisma` passed with `The schema at prisma/schema.prisma is valid`
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/api typecheck`, `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/web typecheck`, and `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/domain typecheck` passed after adding notification events and module registration
+- `apps/api/test/minimal-audit-log.spec.ts` was created first and failed with `Cannot find module '../src/modules/audit/minimal-audit.service'`, proving the minimal audit service did not exist before Step 8 implementation
+- `packages/domain/src/audit/audit-log.types.ts` created with `MinimalAuditLogRecord`
+- `apps/api/src/modules/audit/minimal-audit.service.ts` and `audit.module.ts` created with the P1 minimum action trail
+- `apps/api/src/modules/acceptance/acceptance.service.ts` now records audit entries for acceptance approval, rejection, and reopen events
+- `apps/api/src/modules/documents/documents.service.ts` now records audit entries for document updates
+- `apps/api/prisma/schema.prisma` updated with `OperationAuditLog`
+- `apps/api/prisma/migrations/20260604193000_task04_minimal_audit/migration.sql` created for minimal operation audit logs
+- `docs/runbooks/p1-acceptance-smoke-check.md` created with automated checks and manual acceptance/document/notification/audit smoke path
+- `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/api exec tsx --tsconfig tsconfig.json --test test/minimal-audit-log.spec.ts` passed with 1 test, 0 failures
+- Task4 final API verification passed: `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/api exec tsx --tsconfig tsconfig.json --test test/story-acceptance-state-machine.spec.ts test/story-acceptance-audit-fields.spec.ts test/story-acceptance.spec.ts test/story-done-guard.spec.ts test/document-save.spec.ts test/document-attachment-link.spec.ts test/notification-triggers.spec.ts test/minimal-audit-log.spec.ts` passed with 18 tests, 0 failures
+- Task4 final web verification passed: `COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/web test -- document-preview attachment-preview notifications` passed with 13 tests, 0 failures
+- Task4 final Prisma verification passed: `DATABASE_URL=postgresql://placeholder:placeholder@127.0.0.1:5432/poco_scrum COREPACK_HOME=/private/tmp/corepack corepack pnpm --filter @poco-scrum/api exec prisma validate --schema prisma/schema.prisma` passed with `The schema at prisma/schema.prisma is valid`
+- Task4 final root build passed: `COREPACK_HOME=/private/tmp/corepack corepack pnpm -r build`
 
 ## Steps
 

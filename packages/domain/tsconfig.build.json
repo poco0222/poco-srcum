@@ -1,0 +1,21 @@
+{
+  // @file Domain package build TypeScript config
+  // @author PopoY
+  // @created 2026-06-04
+  // @purpose Emit CommonJS runtime files for Node.js consumers while keeping source-first typechecking.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "declaration": true,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noEmit": false,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "sourceMap": true
+  },
+  "exclude": [
+    "dist",
+    "node_modules",
+    "**/*.spec.ts"
+  ]
+}

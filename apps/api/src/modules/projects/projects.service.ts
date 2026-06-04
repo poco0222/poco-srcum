@@ -8,11 +8,11 @@ import { ForbiddenException } from "@nestjs/common";
 import type {
   MemberStatusValue,
   ProjectRoleValue
-} from "../../../../../packages/domain/src/index.js";
+} from "@poco-scrum/domain";
 import {
   AssertProjectMembershipInputSchema,
   type AssertProjectMembershipInput
-} from "../../../../../packages/shared/src/index.js";
+} from "@poco-scrum/shared";
 
 type ProjectMembershipRecord = {
   currentUserId: string;

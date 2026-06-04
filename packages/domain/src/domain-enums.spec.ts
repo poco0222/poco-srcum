@@ -11,7 +11,7 @@ import {
   ProjectRole,
   ProjectStatus,
   SystemRole
-} from "./index.js";
+} from "./index";
 
 describe("shared domain enums", () => {
   it("exports the frozen system and project role names", () => {

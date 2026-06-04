@@ -1,0 +1,21 @@
+{
+  // @file Shared package build TypeScript config
+  // @author PopoY
+  // @created 2026-06-04
+  // @purpose Emit CommonJS DTO and schema helpers for Node.js runtime consumers.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "declaration": true,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noEmit": false,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "sourceMap": true
+  },
+  "exclude": [
+    "dist",
+    "node_modules",
+    "**/*.spec.ts"
+  ]
+}

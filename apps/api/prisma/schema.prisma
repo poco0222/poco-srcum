@@ -30,12 +30,66 @@ enum ProjectRole {
   REVIEWER
 }
 
+enum WorkItemType {
+  EPIC
+  STORY
+  TASK
+  BUG
+}
+
+enum WorkItemStatus {
+  BACKLOG
+  READY_FOR_SPRINT
+  COMMITTED_TO_SPRINT
+  IN_PROGRESS
+  IN_REVIEW
+  DONE
+  CANCELLED
+}
+
+enum WorkItemPriority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum SprintStatus {
+  DRAFT
+  PLANNED
+  ACTIVE
+  ENDED
+  CLOSED
+}
+
+enum AcceptanceStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REOPENED
+}
+
+enum DocumentTargetType {
+  STORY
+  SPRINT
+  RETROSPECTIVE
+}
+
 model User {
   id              String          @id @default(uuid())
   email           String          @unique
   displayName     String
   teamMemberships TeamMember[]
   projectMembers  ProjectMember[]
+  sprintDailyUpdates SprintDailyUpdate[]
+  storyAcceptanceRecords StoryAcceptanceRecord[]
+  authoredDocuments Document[] @relation("DocumentAuthor")
+  updatedDocuments Document[] @relation("DocumentUpdater")
+  documentAttachments DocumentAttachment[]
+  documentLinks DocumentLink[]
+  receivedNotifications Notification[] @relation("NotificationRecipient")
+  actedNotifications Notification[] @relation("NotificationActor")
+  auditLogs OperationAuditLog[]
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 }
@@ -71,6 +125,8 @@ model Project {
   status      ProjectStatus
   team        Team            @relation(fields: [teamId], references: [id], onDelete: Cascade)
   members     ProjectMember[]
+  sprints     Sprint[]
+  workItems   WorkItem[]
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 }
@@ -87,4 +143,183 @@ model ProjectMember {
   updatedAt  DateTime     @updatedAt
 
   @@unique([projectId, userId])
+}
+
+model WorkItem {
+  id                 String            @id @default(uuid())
+  projectId          String
+  sprintId           String?
+  parentId           String?
+  assigneeId         String?
+  type               WorkItemType
+  status             WorkItemStatus
+  priority           WorkItemPriority
+  title              String
+  description        String?
+  storyPoints        Int?
+  acceptanceCriteria Json
+  sortOrder          Int
+  project            Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sprint             Sprint?           @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+  parent             WorkItem?         @relation("WorkItemParentChild", fields: [parentId], references: [id], onDelete: SetNull)
+  children           WorkItem[]        @relation("WorkItemParentChild")
+  sprintCommitments  SprintCommitment[]
+  sprintDailyUpdates SprintDailyUpdate[]
+  storyAcceptanceRecords StoryAcceptanceRecord[]
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  @@index([projectId, type, sortOrder])
+  @@index([projectId, sprintId])
+  @@index([parentId])
+}
+
+model Sprint {
+  id                 String               @id @default(uuid())
+  projectId          String
+  name               String
+  status             SprintStatus
+  goal               String?
+  planningNote       String?
+  planningSnapshot   Json?
+  startsAt           DateTime?
+  endsAt             DateTime?
+  activatedAt        DateTime?
+  endedAt            DateTime?
+  closedAt           DateTime?
+  retrospectiveId    String?
+  project            Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  commitments        SprintCommitment[]
+  dailyUpdates       SprintDailyUpdate[]
+  workItems          WorkItem[]
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  @@index([projectId, status])
+  @@index([projectId, startsAt, endsAt])
+}
+
+model SprintCommitment {
+  id         String    @id @default(uuid())
+  sprintId   String
+  workItemId String
+  sprint     Sprint    @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  workItem   WorkItem  @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+
+  @@unique([sprintId, workItemId])
+  @@index([workItemId])
+}
+
+model SprintDailyUpdate {
+  id         String    @id @default(uuid())
+  sprintId   String
+  workItemId String?
+  authorId   String
+  summary    String
+  sprint     Sprint    @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  workItem   WorkItem? @relation(fields: [workItemId], references: [id], onDelete: SetNull)
+  author     User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([sprintId, createdAt])
+  @@index([workItemId, createdAt])
+  @@index([authorId, createdAt])
+}
+
+model StoryAcceptanceRecord {
+  id          String           @id @default(uuid())
+  storyId     String
+  status      AcceptanceStatus
+  actorId     String
+  reason      String?
+  operatedAt  DateTime
+  story       WorkItem         @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  actor       User             @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  createdAt   DateTime         @default(now())
+
+  @@index([storyId, createdAt])
+  @@index([actorId, createdAt])
+}
+
+model Document {
+  id                String             @id @default(uuid())
+  title             String
+  targetType        DocumentTargetType
+  targetId          String
+  authorId          String
+  updatedById       String
+  structuredFields  Json
+  markdown          String
+  author            User               @relation("DocumentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  updatedBy         User               @relation("DocumentUpdater", fields: [updatedById], references: [id], onDelete: Cascade)
+  attachments       DocumentAttachment[]
+  links             DocumentLink[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([targetType, targetId])
+  @@index([authorId, createdAt])
+}
+
+model DocumentAttachment {
+  id          String    @id @default(uuid())
+  documentId  String
+  actorId     String
+  fileName    String
+  mimeType    String
+  sizeBytes   Int
+  url         String
+  previewKind String
+  document    Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  actor       User      @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@index([documentId, createdAt])
+}
+
+model DocumentLink {
+  id          String             @id @default(uuid())
+  documentId  String
+  targetType  DocumentTargetType
+  targetId    String
+  actorId     String
+  document    Document           @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  actor       User               @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  createdAt   DateTime           @default(now())
+
+  @@index([targetType, targetId])
+  @@index([documentId, createdAt])
+}
+
+model Notification {
+  id           String    @id @default(uuid())
+  recipientId  String
+  actorId      String
+  eventType    String
+  objectType   String
+  objectId     String
+  reason       String
+  readAt       DateTime?
+  recipient    User      @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor        User      @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+  createdAt    DateTime  @default(now())
+
+  @@index([recipientId, createdAt])
+  @@index([objectType, objectId])
+}
+
+model OperationAuditLog {
+  id          String    @id @default(uuid())
+  actorId     String
+  objectType  String
+  objectId    String
+  action      String
+  payload     Json
+  actor       User      @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@index([objectType, objectId, createdAt])
+  @@index([actorId, createdAt])
 }
