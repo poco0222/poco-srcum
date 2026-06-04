@@ -20,6 +20,8 @@ node_modules/
 dist/
 build/
 coverage/
+*.tsbuildinfo
+.next/
 
 # local environment files
 .env
