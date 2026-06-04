@@ -7,12 +7,15 @@ import { BadRequestException, NotFoundException } from "@nestjs/common";
 
 import { NotificationEventType, type DocumentRecord } from "@poco-scrum/domain";
 import {
+  CreateFormalDocumentInputSchema,
   CreateDocumentInputSchema,
   UpdateDocumentInputSchema,
+  type CreateFormalDocumentInput,
   type CreateDocumentInput,
   type UpdateDocumentInput
 } from "@poco-scrum/shared";
 import { MinimalAuditService } from "../audit/minimal-audit.service";
+import { DocumentTemplatesService } from "../document-templates/document-templates.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { InMemoryDocumentsRepository } from "./documents.repository";
 
@@ -21,7 +24,8 @@ export class DocumentsService {
     private readonly repository: InMemoryDocumentsRepository = new InMemoryDocumentsRepository(),
     private nextSequence = 1,
     private readonly notificationsService?: NotificationsService,
-    private readonly auditService?: MinimalAuditService
+    private readonly auditService?: MinimalAuditService,
+    private readonly templatesService: DocumentTemplatesService = new DocumentTemplatesService()
   ) {}
 
   /**
@@ -34,6 +38,43 @@ export class DocumentsService {
     const document: DocumentRecord = {
       id: `document-${this.nextSequence++}`,
       title: payload.title,
+      targetType: payload.targetType,
+      targetId: payload.targetId,
+      authorId: payload.authorId,
+      updatedById: payload.authorId,
+      structuredFields: payload.structuredFields,
+      markdown: payload.markdown,
+      createdAt: now,
+      updatedAt: now
+    };
+
+    return this.repository.create(document);
+  }
+
+  /**
+   * @param input The template-backed formal document creation payload.
+   * @returns The created formal document record.
+   */
+  async createFormalDocument(input: CreateFormalDocumentInput) {
+    const payload = CreateFormalDocumentInputSchema.parse(input);
+    const template = await this.templatesService.getTemplateById(
+      payload.templateId
+    );
+
+    if (!template) {
+      throw new BadRequestException("DOCUMENT_TEMPLATE_NOT_FOUND");
+    }
+
+    if (template.documentType !== payload.documentType) {
+      throw new BadRequestException("DOCUMENT_TEMPLATE_TYPE_MISMATCH");
+    }
+
+    const now = new Date().toISOString();
+    const document: DocumentRecord = {
+      id: `document-${this.nextSequence++}`,
+      title: payload.title,
+      documentType: payload.documentType,
+      templateId: payload.templateId,
       targetType: payload.targetType,
       targetId: payload.targetId,
       authorId: payload.authorId,

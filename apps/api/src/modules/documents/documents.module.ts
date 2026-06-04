@@ -8,15 +8,23 @@ import { Module } from "@nestjs/common";
 import { AttachmentsModule } from "../attachments/attachments.module";
 import { AuditModule } from "../audit/audit.module";
 import { MinimalAuditService } from "../audit/minimal-audit.service";
+import { DocumentTemplatesModule } from "../document-templates/document-templates.module";
+import { DocumentTemplatesService } from "../document-templates/document-templates.service";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { NotificationsService } from "../notifications/notifications.service";
 import { DocumentLinksService } from "./document-links.service";
+import { DocumentRelationsService } from "./document-relations.service";
 import { DocumentsController } from "./documents.controller";
 import { InMemoryDocumentsRepository } from "./documents.repository";
 import { DocumentsService } from "./documents.service";
 
 @Module({
-  imports: [AttachmentsModule, AuditModule, NotificationsModule],
+  imports: [
+    AttachmentsModule,
+    AuditModule,
+    DocumentTemplatesModule,
+    NotificationsModule
+  ],
   controllers: [DocumentsController],
   providers: [
     {
@@ -28,18 +36,21 @@ import { DocumentsService } from "./documents.service";
       inject: [
         InMemoryDocumentsRepository,
         NotificationsService,
-        MinimalAuditService
+        MinimalAuditService,
+        DocumentTemplatesService
       ],
       useFactory(
         repository: InMemoryDocumentsRepository,
         notificationsService: NotificationsService,
-        auditService: MinimalAuditService
+        auditService: MinimalAuditService,
+        templatesService: DocumentTemplatesService
       ) {
         return new DocumentsService(
           repository,
           1,
           notificationsService,
-          auditService
+          auditService,
+          templatesService
         );
       }
     },
@@ -49,10 +60,18 @@ import { DocumentsService } from "./documents.service";
       useFactory(documentsService: DocumentsService) {
         return new DocumentLinksService(documentsService);
       }
+    },
+    {
+      provide: DocumentRelationsService,
+      inject: [DocumentsService],
+      useFactory(documentsService: DocumentsService) {
+        return new DocumentRelationsService(documentsService);
+      }
     }
   ],
   exports: [
     DocumentLinksService,
+    DocumentRelationsService,
     DocumentsService,
     InMemoryDocumentsRepository
   ]

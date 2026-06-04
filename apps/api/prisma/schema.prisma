@@ -75,6 +75,13 @@ enum DocumentTargetType {
   RETROSPECTIVE
 }
 
+enum DocumentType {
+  REQUIREMENT
+  TECHNICAL_SOLUTION
+  ACCEPTANCE
+  RETROSPECTIVE
+}
+
 model User {
   id              String          @id @default(uuid())
   email           String          @unique
@@ -85,6 +92,7 @@ model User {
   storyAcceptanceRecords StoryAcceptanceRecord[]
   authoredDocuments Document[] @relation("DocumentAuthor")
   updatedDocuments Document[] @relation("DocumentUpdater")
+  createdDocumentTemplates DocumentTemplate[]
   documentAttachments DocumentAttachment[]
   documentLinks DocumentLink[]
   receivedNotifications Notification[] @relation("NotificationRecipient")
@@ -261,6 +269,25 @@ model Document {
 
   @@index([targetType, targetId])
   @@index([authorId, createdAt])
+}
+
+model DocumentTemplate {
+  id                String       @id
+  documentType      DocumentType
+  name              String
+  description       String
+  structuredFields  Json
+  requiredFieldKeys Json
+  markdown          String
+  isDefault         Boolean
+  createdById       String
+  createdBy         User         @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@unique([documentType, isDefault])
+  @@index([documentType])
+  @@index([createdById, createdAt])
 }
 
 model DocumentAttachment {

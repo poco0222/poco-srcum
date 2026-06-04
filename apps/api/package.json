@@ -20,7 +20,7 @@
     "dev": "tsx watch src/main.ts",
     "lint": "node -e \"console.log('api lint placeholder')\"",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "tsx --conditions=source --tsconfig tsconfig.json --test ../../tests/e2e/*.spec.ts ../../tests/e2e/backlog/*.spec.ts ../../tests/e2e/sprints/*.spec.ts test/**/*.spec.ts",
+    "test": "tsx --conditions=source --tsconfig tsconfig.json --test ../../tests/e2e/*.spec.ts ../../tests/e2e/backlog/*.spec.ts ../../tests/e2e/documents/*.spec.ts ../../tests/e2e/sprints/*.spec.ts test/**/*.spec.ts",
     "build": "tsc -p tsconfig.build.json",
     "prisma:validate": "prisma validate --schema prisma/schema.prisma"
   }

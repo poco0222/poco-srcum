@@ -9,6 +9,7 @@ import { AcceptanceModule } from "./modules/acceptance/acceptance.module";
 import { AttachmentsModule } from "./modules/attachments/attachments.module";
 import { AuditModule } from "./modules/audit/audit.module";
 import { AuthModule } from "./modules/auth/auth.module";
+import { DocumentTemplatesModule } from "./modules/document-templates/document-templates.module";
 import { DocumentsModule } from "./modules/documents/documents.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { ProjectsModule } from "./modules/projects/projects.module";
@@ -36,6 +37,7 @@ class HealthController {
     AttachmentsModule,
     AuditModule,
     AuthModule,
+    DocumentTemplatesModule,
     DocumentsModule,
     NotificationsModule,
     ProjectsModule,

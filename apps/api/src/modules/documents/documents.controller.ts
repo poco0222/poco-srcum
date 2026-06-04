@@ -17,6 +17,7 @@ import {
 } from "@nestjs/common";
 
 import {
+  CreateFormalDocumentInputSchema,
   CreateDocumentInputSchema,
   UpdateDocumentInputSchema
 } from "@poco-scrum/shared";
@@ -38,6 +39,25 @@ export class DocumentsController {
     try {
       return this.documentsService.createDocument(
         CreateDocumentInputSchema.parse(body)
+      );
+    } catch (error) {
+      if (error instanceof TypeError) {
+        throw new BadRequestException(error.message);
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * @param body The formal document creation payload with template metadata.
+   * @returns The created formal document.
+   */
+  @Post("/formal")
+  createFormalDocument(@Body() body: unknown) {
+    try {
+      return this.documentsService.createFormalDocument(
+        CreateFormalDocumentInputSchema.parse(body)
       );
     } catch (error) {
       if (error instanceof TypeError) {

@@ -22,6 +22,12 @@ export type {
   UpdateDocumentInput
 } from "./documents/document.schemas";
 export {
+  CreateFormalDocumentInputSchema
+} from "./documents/document-editor.schema";
+export type {
+  CreateFormalDocumentInput
+} from "./documents/document-editor.schema";
+export {
   AssertProjectMembershipInputSchema
 } from "./projects/project-membership-access";
 export type {

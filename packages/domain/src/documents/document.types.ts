@@ -4,12 +4,15 @@
  * @created 2026-06-04
  */
 import type { DocumentTargetTypeValue } from "./document.enums";
+import type { DocumentTypeValue } from "./document-type.enums";
 
 export type DocumentStructuredFields = Record<string, string | number | boolean | null>;
 
 export type DocumentRecord = {
   id: string;
   title: string;
+  documentType?: DocumentTypeValue;
+  templateId?: string;
   targetType: DocumentTargetTypeValue;
   targetId: string;
   authorId: string;

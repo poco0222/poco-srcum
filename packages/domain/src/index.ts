@@ -28,10 +28,37 @@ export { DocumentTargetType } from "./documents/document.enums";
 export type {
   DocumentTargetTypeValue
 } from "./documents/document.enums";
+export {
+  DocumentFieldRequirement,
+  DocumentType
+} from "./documents/document-type.enums";
+export type {
+  DocumentFieldRequirementValue,
+  DocumentTypeValue
+} from "./documents/document-type.enums";
+export {
+  DocumentTypeMatrix
+} from "./documents/document-type.matrix";
+export type {
+  DocumentStructuredFieldMatrix,
+  DocumentTypeMatrixEntry,
+  DocumentTypeMatrixMap
+} from "./documents/document-type.matrix";
 export type {
   DocumentRecord,
   DocumentStructuredFields
 } from "./documents/document.types";
+export {
+  DocumentRelationTargetType,
+  DocumentRelationType
+} from "./documents/document-relation.enums";
+export type {
+  DocumentRelationTargetTypeValue,
+  DocumentRelationTypeValue
+} from "./documents/document-relation.enums";
+export type {
+  DocumentRelationRecord
+} from "./documents/document-relation.types";
 export type {
   AttachmentPreviewKind,
   DocumentAttachmentRecord,
