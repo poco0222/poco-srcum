@@ -1,0 +1,16 @@
+{
+  "name": "@poco-scrum/domain",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "types": "./src/index.ts",
+  "scripts": {
+    "lint": "node -e \"console.log('domain lint placeholder')\"",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node --import tsx --test src/**/*.spec.ts",
+    "build": "node -e \"console.log('domain build placeholder')\""
+  }
+}

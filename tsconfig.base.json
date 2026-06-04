@@ -1,0 +1,19 @@
+{
+  // @file Shared TypeScript baseline
+  // @author PopoY
+  // @created 2026-06-04
+  // @purpose Define strict compiler defaults shared by the monorepo workspaces created in Phase 1 Task 1.
+  "compilerOptions": {
+    "target": "ES2022",
+    "strict": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "types": [
+      "node"
+    ]
+  }
+}

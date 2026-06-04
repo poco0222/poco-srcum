@@ -13,6 +13,7 @@
 # logs and caches
 *.log
 .cache/
+.tooling/
 
 # Node.js
 node_modules/
@@ -24,3 +25,6 @@ coverage/
 .env
 .env.local
 .env.*.local
+
+# git worktrees
+.worktrees/

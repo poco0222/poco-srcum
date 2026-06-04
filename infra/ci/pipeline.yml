@@ -1,0 +1,41 @@
+# @file CI baseline pipeline for the Phase 1 bootstrap task
+# @author PopoY
+# @created 2026-06-04
+# @purpose Define the minimum quality gate sequence for the Scrum Platform monorepo without introducing deployment logic.
+
+name: poco-scrum-quality-gate
+
+on:
+  push:
+    branches:
+      - main
+      - task-p1-task1-foundation
+  pull_request:
+
+jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm
+        run: corepack enable
+
+      - name: Install dependencies
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: corepack pnpm -r lint
+
+      - name: Typecheck
+        run: corepack pnpm -r typecheck
+
+      - name: Test
+        run: corepack pnpm -r test
+
+      - name: Build
+        run: corepack pnpm -r build

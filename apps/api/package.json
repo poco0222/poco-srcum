@@ -1,0 +1,25 @@
+{
+  "name": "@poco-scrum/api",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@nestjs/common": "^11.1.9",
+    "@nestjs/core": "^11.1.9",
+    "@nestjs/platform-express": "^11.1.9",
+    "@prisma/client": "^6.9.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@nestjs/testing": "^11.1.9",
+    "prisma": "^6.9.0"
+  },
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "lint": "node -e \"console.log('api lint placeholder')\"",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "tsx --tsconfig tsconfig.json --test ../../tests/e2e/health-check.e2e-spec.ts test/**/*.spec.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "prisma:validate": "prisma validate --schema prisma/schema.prisma"
+  }
+}

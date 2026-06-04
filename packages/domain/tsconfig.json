@@ -1,0 +1,19 @@
+{
+  // @file Domain package TypeScript config
+  // @author PopoY
+  // @created 2026-06-04
+  // @purpose Configure the shared domain package with strict TypeScript defaults and ESM output assumptions.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "rootDir": "./src",
+    "noEmit": true
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

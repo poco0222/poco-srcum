@@ -1,0 +1,16 @@
+{
+  "name": "@poco-scrum/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "types": "./src/index.ts",
+  "scripts": {
+    "lint": "node -e \"console.log('shared lint placeholder')\"",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node -e \"console.log('shared test placeholder')\"",
+    "build": "node -e \"console.log('shared build placeholder')\""
+  }
+}

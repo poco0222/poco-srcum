@@ -1,0 +1,21 @@
+{
+  "name": "@poco-scrum/web",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "next": "^16.0.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "lint": "node -e \"console.log('web lint placeholder')\"",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node -e \"console.log('web test placeholder')\"",
+    "build": "next build"
+  }
+}

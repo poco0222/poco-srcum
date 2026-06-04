@@ -1,0 +1,12 @@
+{
+  "name": "@poco-scrum/worker",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "lint": "node -e \"console.log('worker lint placeholder')\"",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node --import tsx --test src/**/*.spec.ts",
+    "build": "tsc -p tsconfig.json"
+  }
+}

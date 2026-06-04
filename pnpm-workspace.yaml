@@ -1,0 +1,9 @@
+# @file pnpm workspace packages
+# @author PopoY
+# @created 2026-06-04
+# @purpose Register the application, shared package, and end-to-end test workspaces for the Phase 1 bootstrap task.
+
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "tests/*"

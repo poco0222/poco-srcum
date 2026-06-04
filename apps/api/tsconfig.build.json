@@ -1,0 +1,15 @@
+{
+  // @file API build TypeScript config
+  // @author PopoY
+  // @created 2026-06-04
+  // @purpose Narrow the NestJS build output to runtime source files while reusing the application compiler settings.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "declaration": false
+  },
+  "exclude": [
+    "dist",
+    "node_modules",
+    "**/*.spec.ts"
+  ]
+}
