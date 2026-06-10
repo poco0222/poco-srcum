@@ -48,6 +48,9 @@ export type {
   DocumentRecord,
   DocumentStructuredFields
 } from "./documents/document.types";
+export type {
+  DocumentVersionRecord
+} from "./documents/document-version.types";
 export {
   DocumentRelationTargetType,
   DocumentRelationType
@@ -64,6 +67,65 @@ export type {
   DocumentAttachmentRecord,
   DocumentLinkRecord
 } from "./documents/attachment.types";
+export {
+  LinkageCardinality,
+  LinkageObjectType,
+  LinkageRelationType
+} from "./linkage/linkage.enums";
+export type {
+  LinkageCardinalityValue,
+  LinkageObjectTypeValue,
+  LinkageRelationTypeValue
+} from "./linkage/linkage.enums";
+export {
+  LinkageRelationRules,
+  getReverseLinkageRelation,
+  isLinkageRelationAllowed
+} from "./linkage/linkage.rules";
+export type {
+  LinkageRelationRule,
+  LinkageRelationRuleMap
+} from "./linkage/linkage.rules";
+export type {
+  ObjectLinkRecord
+} from "./linkage/linkage.types";
+export { CommentAnchorType } from "./reviews/comment.enums";
+export type {
+  CommentAnchorTypeValue
+} from "./reviews/comment.enums";
+export {
+  CommentMentionTokenPattern,
+  buildDocumentCommentAnchor,
+  buildFieldCommentAnchor,
+  buildMarkdownBlockCommentAnchor,
+  isCommentAnchorType,
+  parseCommentMentionTokens
+} from "./reviews/comment-anchor.types";
+export type {
+  CommentAnchor,
+  DocumentCommentAnchor,
+  FieldCommentAnchor,
+  MarkdownBlockCommentAnchor
+} from "./reviews/comment-anchor.types";
+export type {
+  DocumentCommentRecord
+} from "./reviews/comment.types";
+export { DocumentReviewStatus } from "./reviews/review.enums";
+export type {
+  DocumentReviewStatusValue
+} from "./reviews/review.enums";
+export {
+  DocumentReviewAllowedTransitions,
+  assertDocumentReviewStatusTransition,
+  canApproveDocumentReviewVersion,
+  canTransitionDocumentReviewStatus
+} from "./reviews/review.machine";
+export type {
+  DocumentReviewTransitionMap
+} from "./reviews/review.machine";
+export type {
+  DocumentReviewRecord
+} from "./reviews/review.types";
 export { NotificationEventType } from "./notifications/notification.enums";
 export type {
   NotificationEventTypeValue

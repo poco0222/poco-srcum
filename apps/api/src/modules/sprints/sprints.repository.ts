@@ -53,6 +53,19 @@ export class InMemorySprintsRepository {
       .map((sprint) => cloneSprintRecord(sprint));
   }
 
+  /**
+   * @returns All Sprint records in planned-date order for read models like search.
+   */
+  async listAll() {
+    return [...this.sprints.values()]
+      .sort((left, right) => {
+        const leftStartsAt = left.startsAt ?? "";
+        const rightStartsAt = right.startsAt ?? "";
+        return leftStartsAt.localeCompare(rightStartsAt);
+      })
+      .map((sprint) => cloneSprintRecord(sprint));
+  }
+
   async replaceCommitments(
     sprintId: string,
     entries: SprintCommitmentRecord[]

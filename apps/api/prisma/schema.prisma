@@ -95,6 +95,7 @@ model User {
   createdDocumentTemplates DocumentTemplate[]
   documentAttachments DocumentAttachment[]
   documentLinks DocumentLink[]
+  createdObjectLinks ObjectLink[]
   receivedNotifications Notification[] @relation("NotificationRecipient")
   actedNotifications Notification[] @relation("NotificationActor")
   auditLogs OperationAuditLog[]
@@ -318,6 +319,23 @@ model DocumentLink {
 
   @@index([targetType, targetId])
   @@index([documentId, createdAt])
+}
+
+model ObjectLink {
+  id           String    @id @default(uuid())
+  relationType String
+  sourceType   String
+  sourceId     String
+  targetType   String
+  targetId     String
+  actorId      String
+  actor        User      @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  createdAt    DateTime  @default(now())
+
+  @@unique([relationType, sourceType, sourceId, targetType, targetId])
+  @@index([sourceType, sourceId, createdAt])
+  @@index([targetType, targetId, createdAt])
+  @@index([actorId, createdAt])
 }
 
 model Notification {

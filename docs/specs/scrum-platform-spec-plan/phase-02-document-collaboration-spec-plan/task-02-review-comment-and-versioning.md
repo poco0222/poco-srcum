@@ -2,7 +2,7 @@
 
 > Author: PopoY
 > Created: 2026-06-04
-> Status: planned
+> Status: done
 > Phase: P2
 > Parent Spec: `phase-02-document-collaboration-spec.md`
 > Parent Plan: `phase-02-document-collaboration-spec-plan.md`
@@ -10,6 +10,18 @@
 ## Objective
 
 建立评论、提及、评审结论、版本历史能力，让文档协作过程可追溯。
+
+## Step Status
+
+| Step | Status | Progress | Summary |
+| --- | --- | --- | --- |
+| Step 1 | done | 1/7 | 已冻结 `document / field / markdown-block` 评论锚点、`@user:<id>` 提及语义与 ADR |
+| Step 2 | done | 2/7 | 已编写评论、回复、无权限评论和提及通知失败测试 |
+| Step 3 | done | 3/7 | 已实现评论模块、回复关系、站内提及通知和只读评论面板 |
+| Step 4 | done | 4/7 | 已冻结 `draft / in-review / approved / rejected` 状态机并实现评审 API |
+| Step 5 | done | 5/7 | 已实现完整版本快照、变更摘要 schema 与评审最新版本绑定 |
+| Step 6 | done | 6/7 | 已实现评审页、版本历史页和非最新版本审批前端守卫 |
+| Step 7 | done | 7/7 | 已完成评审与版本历史主路径 e2e、runbook、根级测试与构建回归 |
 
 ## Background
 
@@ -115,8 +127,12 @@
   - 任一评论都能明确指向一个稳定锚点
   - 提及语义可被通知模块复用
 - Evidence:
-  - ADR 路径
-  - 类型测试输出
+  - `docs/adr/adr-006-comment-anchor.md`
+  - `packages/domain/src/reviews/comment.enums.ts`
+  - `packages/domain/src/reviews/comment-anchor.types.ts`
+  - `packages/domain/src/reviews/comment-anchor.domain.spec.ts`
+  - `corepack pnpm --filter @poco-scrum/domain test -- comment-anchor`：21 tests, 21 pass
+  - `corepack pnpm --filter @poco-scrum/domain typecheck`：exit 0
 - Notes:
   - 不在此步实现评论 API
 
@@ -142,7 +158,10 @@
   - 至少存在一条未授权负例
   - 提及必须有明确的通知触发断言
 - Evidence:
-  - 测试失败输出
+  - `apps/api/test/document-comments.spec.ts`
+  - `apps/api/test/document-mentions.spec.ts`
+  - `corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test test/document-comments.spec.ts`：fails with `Cannot find module '../src/modules/comments/comments.service'`
+  - `corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test test/document-mentions.spec.ts`：fails with `Cannot find module '../src/modules/comments/comments.service'`
   - 字段清单
 - Notes:
   - 不先实现评审状态机
@@ -171,8 +190,21 @@
   - 评论与回复可追溯
   - 提及用户能收到站内通知
 - Evidence:
-  - 测试输出
-  - 页面截图
+  - `packages/domain/src/reviews/comment.types.ts`
+  - `packages/shared/src/reviews/comment.schemas.ts`
+  - `apps/api/src/modules/comments/comments.service.ts`
+  - `apps/api/src/modules/comments/comments.controller.ts`
+  - `apps/api/src/modules/comments/comments.module.ts`
+  - `apps/web/src/features/documents/review/comments/comment-panel.tsx`
+  - `apps/web/src/features/documents/review/comments/comment-panel.spec.ts`
+  - `corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test test/document-comments.spec.ts`：3 tests, 3 pass
+  - `corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test test/document-mentions.spec.ts`：1 test, 1 pass
+  - `corepack pnpm --filter @poco-scrum/web test -- comment-panel`：18 tests, 18 pass
+  - `corepack pnpm --filter @poco-scrum/web test -- notifications`：18 tests, 18 pass
+  - `corepack pnpm --filter @poco-scrum/domain typecheck`：exit 0
+  - `corepack pnpm --filter @poco-scrum/shared typecheck`：exit 0
+  - `corepack pnpm --filter @poco-scrum/api typecheck`：exit 0
+  - `corepack pnpm --filter @poco-scrum/web typecheck`：exit 0
 - Notes:
   - 不支持实时协作
 
@@ -200,8 +232,19 @@
   - 文档可进入评审并形成明确结论
   - 非法状态迁移必须失败
 - Evidence:
-  - 测试输出
-  - 状态迁移表
+  - `packages/domain/src/reviews/review.enums.ts`
+  - `packages/domain/src/reviews/review.machine.ts`
+  - `packages/domain/src/reviews/review.types.ts`
+  - `packages/domain/src/reviews/review.domain.spec.ts`
+  - `packages/shared/src/reviews/review.schemas.ts`
+  - `apps/api/src/modules/reviews/reviews.service.ts`
+  - `apps/api/src/modules/reviews/reviews.controller.ts`
+  - `apps/api/src/modules/reviews/reviews.module.ts`
+  - `corepack pnpm --filter @poco-scrum/domain test -- review`：25 tests, 25 pass
+  - `corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test test/document-review-flow.spec.ts`：2 tests, 2 pass
+  - `corepack pnpm --filter @poco-scrum/domain typecheck`：exit 0
+  - `corepack pnpm --filter @poco-scrum/shared typecheck`：exit 0
+  - `corepack pnpm --filter @poco-scrum/api typecheck`：exit 0
 - Notes:
   - 不实现自由工作流引擎
 
@@ -228,8 +271,23 @@
   - 每次保存都能生成可回看的版本记录
   - 评审结论能关联到具体版本
 - Evidence:
-  - 测试输出
-  - 历史版本样例
+  - `packages/domain/src/documents/document-version.types.ts`
+  - `packages/shared/src/documents/version-summary.schema.ts`
+  - `apps/api/src/modules/document-versions/document-versions.service.ts`
+  - `apps/api/src/modules/document-versions/document-versions.controller.ts`
+  - `apps/api/src/modules/document-versions/document-versions.module.ts`
+  - `apps/api/test/document-versioning.spec.ts`
+  - `apps/api/src/modules/document-templates/document-templates.repository.ts`：补充本地 Prisma 表缺失时的 seed fallback，避免模板 API 回归为 500
+  - `apps/api/test/document-template-prisma.spec.ts`：补充 Prisma 表缺失 fallback 回归测试
+  - `corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test test/document-versioning.spec.ts`：2 tests, 2 pass
+  - `corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test test/document-save.spec.ts`：3 tests, 3 pass
+  - `corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test test/document-editor-payload.spec.ts`：3 tests, 3 pass
+  - `corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test test/document-review-flow.spec.ts`：2 tests, 2 pass
+  - `corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test test/document-template-prisma.spec.ts`：3 tests, 3 pass
+  - `corepack pnpm --filter @poco-scrum/shared test -- document-editor`：9 tests, 9 pass
+  - `corepack pnpm --filter @poco-scrum/domain typecheck`：exit 0
+  - `corepack pnpm --filter @poco-scrum/shared typecheck`：exit 0
+  - `corepack pnpm --filter @poco-scrum/api typecheck`：exit 0
 - Notes:
   - P2 不要求复杂 diff viewer
 
@@ -258,8 +316,17 @@
   - 用户能在系统内完成最小评审闭环
   - 历史版本可查看且不可误判为最新版本
 - Evidence:
-  - 前端测试输出
-  - 页面截图
+  - `apps/web/src/features/documents/review/review-panel.tsx`
+  - `apps/web/src/features/documents/review/review-panel.spec.ts`
+  - `apps/web/src/features/documents/versions/version-history.tsx`
+  - `apps/web/src/features/documents/versions/version-history.spec.ts`
+  - `apps/web/src/app/(authenticated)/documents/[documentId]/review/page.tsx`
+  - `apps/web/src/app/(authenticated)/documents/[documentId]/versions/page.tsx`
+  - `apps/web/src/features/documents/api/documents-client.ts`
+  - `corepack pnpm --filter @poco-scrum/web test -- document-review`：20 tests, 20 pass
+  - `corepack pnpm --filter @poco-scrum/web test -- document-versions`：20 tests, 20 pass
+  - `corepack pnpm --filter @poco-scrum/web typecheck`：exit 0
+  - `corepack pnpm --filter @poco-scrum/web build`：exit 0，`/documents/[documentId]/review` 与 `/documents/[documentId]/versions` 构建成功
 - Notes:
   - 不实现实时协同编辑
 
@@ -286,7 +353,16 @@
   - 评论、评审、版本历史能在一个流程中稳定协作
   - 根级测试通过
 - Evidence:
-  - e2e 输出
-  - runbook 路径
+  - `tests/e2e/documents/document-review-flow.spec.ts`
+  - `docs/runbooks/p2-review-versioning-smoke-check.md`
+  - `corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test ../../tests/e2e/documents/document-review-flow.spec.ts`：1 test, 1 pass
+  - `corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test test/document-comments.spec.ts test/document-mentions.spec.ts test/document-review-flow.spec.ts test/document-versioning.spec.ts ../../tests/e2e/documents/document-review-flow.spec.ts`：9 tests, 9 pass
+  - `corepack pnpm --filter @poco-scrum/domain test -- comment-anchor review`：25 tests, 25 pass
+  - `corepack pnpm --filter @poco-scrum/web test -- comment-panel document-review document-versions notifications`：20 tests, 20 pass
+  - `corepack pnpm --filter @poco-scrum/domain typecheck && corepack pnpm --filter @poco-scrum/shared typecheck && corepack pnpm --filter @poco-scrum/api typecheck && corepack pnpm --filter @poco-scrum/web typecheck`：exit 0
+  - `corepack pnpm -r --if-present test`：131 tests, 131 pass
+  - `corepack pnpm -r --if-present build`：exit 0，包含 `/documents/[documentId]/review` 与 `/documents/[documentId]/versions`
+  - `corepack pnpm --filter @poco-scrum/api prisma:validate`：exit 0
+  - `git diff --check`：仅 CRLF 提示，无 whitespace error
 - Notes:
   - 搜索与仪表盘在下一 task 承接

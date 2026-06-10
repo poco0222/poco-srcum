@@ -71,6 +71,18 @@ export class InMemoryWorkItemsRepository {
       }));
   }
 
+  /**
+   * @returns All work items in backlog order for read models like search.
+   */
+  async listAll() {
+    return [...this.workItems.values()]
+      .sort((left, right) => left.sortOrder - right.sortOrder)
+      .map((item) => ({
+        ...item,
+        acceptanceCriteria: [...item.acceptanceCriteria]
+      }));
+  }
+
   async reorder(items: Array<{ id: string; sortOrder: number }>) {
     for (const entry of items) {
       const current = this.workItems.get(entry.id);

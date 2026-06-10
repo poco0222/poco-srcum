@@ -27,5 +27,9 @@ describe("notification labels", () => {
       getNotificationLabel(NotificationEventType.DOCUMENT_UPDATED),
       "Document updated"
     );
+    assert.equal(
+      getNotificationLabel(NotificationEventType.DOCUMENT_COMMENT_MENTIONED),
+      "Document comment mention"
+    );
   });
 });

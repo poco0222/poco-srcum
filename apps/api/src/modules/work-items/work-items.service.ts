@@ -108,6 +108,13 @@ export class WorkItemsService {
   }
 
   /**
+   * @returns All work items for read-only aggregation surfaces.
+   */
+  async listAllWorkItems() {
+    return this.repository.listAll();
+  }
+
+  /**
    * @param workItemId The unique work item identifier.
    * @returns The stored work item detail.
    */

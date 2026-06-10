@@ -93,22 +93,32 @@ export class SeedDocumentTemplatesRepository
 export class PrismaDocumentTemplatesRepository
   implements DocumentTemplatesRepository
 {
+  private readonly fallbackRepository = new SeedDocumentTemplatesRepository();
+
   constructor(private readonly prisma: PrismaDocumentTemplatesClient) {}
 
   /**
    * @returns Prisma-backed default formal document templates in matrix order.
    */
   async listDefaultTemplates() {
-    await this.ensureDefaultTemplates();
+    try {
+      await this.ensureDefaultTemplates();
 
-    const rows = await this.prisma.documentTemplate.findMany({
-      where: {
-        isDefault: true
+      const rows = await this.prisma.documentTemplate.findMany({
+        where: {
+          isDefault: true
+        }
+      });
+      const templates = rows.map((row) => normalizePrismaTemplate(row));
+
+      return sortTemplatesByDocumentType(templates);
+    } catch (error) {
+      if (isPrismaFallbackError(error)) {
+        return this.fallbackRepository.listDefaultTemplates();
       }
-    });
-    const templates = rows.map((row) => normalizePrismaTemplate(row));
 
-    return sortTemplatesByDocumentType(templates);
+      throw error;
+    }
   }
 
   /**
@@ -116,16 +126,24 @@ export class PrismaDocumentTemplatesRepository
    * @returns The matching Prisma template, or null when the id is unknown.
    */
   async getTemplateById(templateId: string) {
-    await this.ensureDefaultTemplates();
+    try {
+      await this.ensureDefaultTemplates();
 
-    const row = await this.prisma.documentTemplate.findFirst({
-      where: {
-        id: templateId.trim(),
-        isDefault: true
+      const row = await this.prisma.documentTemplate.findFirst({
+        where: {
+          id: templateId.trim(),
+          isDefault: true
+        }
+      });
+
+      return row ? normalizePrismaTemplate(row) : null;
+    } catch (error) {
+      if (isPrismaFallbackError(error)) {
+        return this.fallbackRepository.getTemplateById(templateId);
       }
-    });
 
-    return row ? normalizePrismaTemplate(row) : null;
+      throw error;
+    }
   }
 
   /**
@@ -249,4 +267,23 @@ function sortTemplatesByDocumentType(templates: DocumentTemplateRecord[]) {
       defaultTemplateOrder.indexOf(right.documentType)
     );
   });
+}
+
+/**
+ * @param error The unknown Prisma runtime error.
+ * @returns Whether seed fallback is safer than failing local document flows.
+ */
+function isPrismaFallbackError(error: unknown) {
+  if (typeof error !== "object" || error === null) {
+    return false;
+  }
+
+  const code = (error as { code?: unknown }).code;
+
+  return (
+    code === "P1001" ||
+    code === "P1003" ||
+    code === "P2021" ||
+    code === "P2022"
+  );
 }

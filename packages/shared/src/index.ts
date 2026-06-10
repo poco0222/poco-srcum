@@ -28,6 +28,42 @@ export type {
   CreateFormalDocumentInput
 } from "./documents/document-editor.schema";
 export {
+  CreateDocumentVersionInputSchema
+} from "./documents/version-summary.schema";
+export type {
+  CreateDocumentVersionInput
+} from "./documents/version-summary.schema";
+export {
+  SearchScopeField,
+  SearchResultCardSchema
+} from "./search/search-result.schema";
+export type {
+  SearchResultCard,
+  SearchScopeFieldValue
+} from "./search/search-result.schema";
+export {
+  SearchQueryInputSchema
+} from "./search/search-query.schema";
+export type {
+  SearchQueryInput
+} from "./search/search-query.schema";
+export {
+  CreateDocumentCommentInputSchema
+} from "./reviews/comment.schemas";
+export type {
+  CreateDocumentCommentInput
+} from "./reviews/comment.schemas";
+export {
+  DecideDocumentReviewInputSchema,
+  ReturnDocumentReviewToDraftInputSchema,
+  SubmitDocumentReviewInputSchema
+} from "./reviews/review.schemas";
+export type {
+  DecideDocumentReviewInput,
+  ReturnDocumentReviewToDraftInput,
+  SubmitDocumentReviewInput
+} from "./reviews/review.schemas";
+export {
   AssertProjectMembershipInputSchema
 } from "./projects/project-membership-access";
 export type {

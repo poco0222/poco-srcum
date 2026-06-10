@@ -37,6 +37,15 @@ export class InMemoryDocumentsRepository {
       .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
       .map((document) => cloneDocument(document));
   }
+
+  /**
+   * @returns All documents in oldest-first order for read models like search.
+   */
+  async listAll() {
+    return [...this.documents.values()]
+      .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
+      .map((document) => cloneDocument(document));
+  }
 }
 
 function cloneDocument(document: DocumentRecord): DocumentRecord {

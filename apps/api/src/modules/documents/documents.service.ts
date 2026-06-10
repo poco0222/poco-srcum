@@ -166,4 +166,11 @@ export class DocumentsService {
 
     return this.repository.listByTarget(targetType.trim(), targetId.trim());
   }
+
+  /**
+   * @returns All stored documents for read-only aggregation surfaces.
+   */
+  async listAllDocuments() {
+    return this.repository.listAll();
+  }
 }

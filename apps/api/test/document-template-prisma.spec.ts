@@ -86,4 +86,35 @@ describe("Prisma-backed document template service", () => {
     assert.equal(template?.id, "db-technical-solution");
     assert.equal(template?.documentType, DocumentType.TECHNICAL_SOLUTION);
   });
+
+  it("falls back to seed templates when local Prisma tables are missing", async () => {
+    const service = new DocumentTemplatesService({
+      user: {
+        async upsert() {
+          const error = new Error("The table `public.User` does not exist.") as Error & {
+            code: string;
+          };
+
+          error.code = "P2021";
+          throw error;
+        }
+      },
+      documentTemplate: {
+        async findMany() {
+          throw new Error("Should not read documentTemplate after fallback");
+        },
+        async findFirst() {
+          throw new Error("Should not read documentTemplate after fallback");
+        },
+        async upsert() {
+          throw new Error("Should not upsert documentTemplate after fallback");
+        }
+      }
+    });
+
+    const template = await service.getTemplateById("default-requirement");
+
+    assert.equal(template?.id, "default-requirement");
+    assert.equal(template?.documentType, DocumentType.REQUIREMENT);
+  });
 });

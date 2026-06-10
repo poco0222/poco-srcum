@@ -2,7 +2,7 @@
 
 > Author: PopoY
 > Created: 2026-06-04
-> Status: planned
+> Status: done
 > Phase: P2
 > Parent Spec: `phase-02-document-collaboration-spec.md`
 > Parent Plan: `phase-02-document-collaboration-spec-plan.md`
@@ -89,6 +89,26 @@
   - `apps/web/src/app/(authenticated)/dashboard/*`
 
 ## Steps
+
+## Step Status
+
+| Step | Status | Progress |
+| --- | --- | --- |
+| Step 1 | done | 已冻结 linkage relation（关联关系）类型、cardinality（基数）、reverse navigation（反向导航）规则，并新增 `docs/adr/adr-007-linkage-model.md`；证据：`corepack pnpm --filter @poco-scrum/domain test -- linkage` 通过。 |
+| Step 2 | done | 已实现 ObjectLink（对象链路）Prisma model（Prisma 模型）、migration（迁移）、Prisma-backed repository（Prisma 驱动仓储）、LinkageService（链路服务）、正反向查询与重复/基数拦截；证据：`corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test test/linkage-relations.spec.ts`、`test/linkage-prisma.spec.ts` 与 `corepack pnpm --filter @poco-scrum/api prisma:validate` 通过。 |
+| Step 3 | done | 已冻结 search scope（搜索范围）为 title（标题）、number（编号）、tag（标签）、structured-field（结构化字段）、markdown-body（Markdown 正文），不包含 attachment full text（附件全文）；已新增 SearchResultCard（搜索结果卡片）契约；证据：`corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test test/search-contract.spec.ts` 与 `corepack pnpm --filter @poco-scrum/shared typecheck` 通过。 |
+| Step 4 | done | 已实现基础 search API（搜索接口），覆盖 title（标题）、structured fields（结构化字段）、Markdown body（Markdown 正文）、relation summary（关系摘要）、review status（评审状态）筛选与稳定空数组响应；证据：`corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test test/search-scope.spec.ts` 与 `test/search-contract.spec.ts` 通过。 |
+| Step 5 | done | 已实现 URL-driven search page（URL 驱动搜索页面）、SearchFilters（搜索筛选器）、SearchResultCard（搜索结果卡片）和跳转规则；文档类结果跳转 `/documents/:id/review`，Story/Sprint 跳转既有详情页；证据：`corepack pnpm --filter @poco-scrum/web test -- search` 通过。 |
+| Step 6 | done | 已实现 lightweight dashboard（轻量仪表盘）API 与页面，固定三类卡片：pending review（待评审）、recent updates（最近更新）、incomplete links（链路不完整）；证据：`corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test test/document-dashboard.spec.ts` 与 `corepack pnpm --filter @poco-scrum/web test -- dashboard` 通过。 |
+| Step 7 | done | 已新增 `tests/e2e/documents/document-linkage-search-flow.spec.ts` 与 `docs/runbooks/p2-linkage-search-dashboard-smoke-check.md`；主路径验证通过，并完成 workspace-level test/build（工作区级测试/构建）。证据：`corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test ../../tests/e2e/documents/document-linkage-search-flow.spec.ts`、`corepack pnpm -r test`、`corepack pnpm -r build` 通过。 |
+
+## Progress Updates
+
+- 2026-06-10: Step 4/Step 6/Step 7 hardening（加固）已回写。`SearchModule`（搜索模块）和 `DashboardModule`（仪表盘模块）已接入 `ReviewsModule`（评审模块），`filter-only search`（仅筛选搜索）支持 `reviewStatus`（评审状态）无关键词查询，统一 `SearchService`（搜索服务）已覆盖 `Document`（文档）、`Story`（故事）和 `Sprint`（迭代）。验证命令：`corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test test/search-scope.spec.ts` 与 `corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test ../../tests/e2e/documents/document-linkage-search-flow.spec.ts` 均通过。
+- 2026-06-10: Step 2 persistence hardening（持久化加固）已回写。`ObjectLink`（对象链路）运行时新增 `PrismaObjectLinksRepository`（Prisma 对象链路仓储）与 `createObjectLinksPrismaClient`（对象链路 Prisma 客户端工厂），`LinkageModule`（链路模块）在 `DATABASE_URL` 可用时使用 Prisma 持久化，否则保留 in-memory fallback（内存降级）。验证命令：`corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test test/linkage-prisma.spec.ts` 通过。
+- 2026-06-10: Step 4 search boundary hardening（搜索边界加固）已回写。`SearchService`（搜索服务）只将 `WorkItemType.STORY`（故事类型工作项）索引为 `STORY`，避免 `TASK/BUG/EPIC`（任务/缺陷/史诗）被误标为 Story。验证命令：`corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test test/search-scope.spec.ts` 通过。
+- 2026-06-10: Step 2 runtime fallback（运行时降级）已回写。若本地 `@prisma/client`（Prisma 客户端）尚未重新生成、缺少 `objectLink delegate`（对象链路委托），`createObjectLinksPrismaClient`（对象链路 Prisma 客户端工厂）不会返回该客户端，`PrismaObjectLinksRepository`（Prisma 对象链路仓储）也会走 in-memory fallback（内存降级），避免 `POST /linkage` 返回 500。验证命令：`corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test test/linkage-prisma.spec.ts` 与 `corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test ../../tests/e2e/documents/document-linkage-search-flow.spec.ts` 均通过。
+- 2026-06-10: Step 2 review hardening（审查加固）已回写。`PrismaObjectLinksRepository`（Prisma 对象链路仓储）在任何 Prisma write fallback（Prisma 写入降级）后进入 sticky fallback（粘性降级），保证同一进程内后续 read/duplicate/cardinality check（读取/查重/基数校验）使用同一数据源；`resolveObjectLinksPrismaClient`（对象链路 Prisma 客户端解析器）会在 stale generated client（过期生成客户端）缺少 `objectLink` 时执行 `$disconnect`（断开连接）后返回 `null`。验证命令：`corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test test/linkage-prisma.spec.ts` 通过。
 
 ### Step 1: 冻结关联关系类型与反向导航规则
 

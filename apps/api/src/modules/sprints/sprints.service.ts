@@ -58,6 +58,13 @@ export class SprintsService {
   }
 
   /**
+   * @returns All Sprint records for read-only aggregation surfaces.
+   */
+  async listAllSprints() {
+    return this.repository.listAll();
+  }
+
+  /**
    * @param sprintId The requested Sprint identifier.
    * @returns The stored Sprint detail.
    */

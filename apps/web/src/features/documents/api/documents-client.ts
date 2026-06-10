@@ -6,6 +6,8 @@
 import type {
   DocumentFieldRequirementValue,
   DocumentRecord,
+  DocumentReviewRecord,
+  DocumentVersionRecord,
   DocumentTypeValue
 } from "@poco-scrum/domain";
 import type { CreateFormalDocumentInput } from "@poco-scrum/shared";
@@ -77,4 +79,30 @@ export function createFormalDocument(payload: CreateFormalDocumentInput) {
     method: "POST",
     body: JSON.stringify(payload)
   });
+}
+
+/**
+ * @param documentId The formal document identifier.
+ * @returns The stored document record.
+ */
+export function getDocument(documentId: string) {
+  return requestJson<DocumentRecord>(`/documents/${documentId}`);
+}
+
+/**
+ * @param documentId The formal document identifier.
+ * @returns The current review state for the document.
+ */
+export function getDocumentReview(documentId: string) {
+  return requestJson<DocumentReviewRecord>(`/documents/${documentId}/review`);
+}
+
+/**
+ * @param documentId The formal document identifier.
+ * @returns Version snapshots for the document.
+ */
+export function listDocumentVersions(documentId: string) {
+  return requestJson<DocumentVersionRecord[]>(
+    `/documents/${documentId}/versions`
+  );
 }

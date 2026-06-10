@@ -35,8 +35,8 @@
 | Task | Goal | Status |
 | --- | --- | --- |
 | `task-01-document-template-and-structure.md` | 建立文档模板、正文结构、Markdown 增强与挂接规范 | planned |
-| `task-02-review-comment-and-versioning.md` | 建立评论、评审、提及、版本历史能力 | planned |
-| `task-03-linkage-search-and-dashboard.md` | 建立关联链路、基础搜索和轻量仪表盘 | planned |
+| `task-02-review-comment-and-versioning.md` | 建立评论、评审、提及、版本历史能力 | done |
+| `task-03-linkage-search-and-dashboard.md` | 建立关联链路、基础搜索和轻量仪表盘 | done |
 
 ## Milestone
 

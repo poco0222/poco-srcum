@@ -17,6 +17,8 @@ export function getNotificationLabel(eventType: NotificationEventTypeValue) {
       return "Acceptance rejected";
     case NotificationEventType.ACCEPTANCE_REOPENED:
       return "Acceptance reopened";
+    case NotificationEventType.DOCUMENT_COMMENT_MENTIONED:
+      return "Document comment mention";
     case NotificationEventType.DOCUMENT_UPDATED:
       return "Document updated";
   }
