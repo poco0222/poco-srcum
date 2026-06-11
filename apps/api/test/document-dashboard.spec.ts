@@ -42,6 +42,9 @@ describe("DashboardService", () => {
       },
       markdown: "## Background\n\nDashboard pending review candidate."
     });
+
+    await waitForNextMillisecond();
+
     const design = await documentsService.createFormalDocument({
       title: "Dashboard Design",
       documentType: DocumentType.TECHNICAL_SOLUTION,
@@ -101,3 +104,15 @@ describe("DashboardService", () => {
     ]);
   });
 });
+
+/**
+ * @returns A promise that resolves after the system clock advances to a new millisecond.
+ */
+async function waitForNextMillisecond() {
+  const startTime = Date.now();
+
+  while (Date.now() === startTime) {
+    // Yield until timestamp-based read-model ordering can observe a later update.
+    await new Promise((resolve) => setTimeout(resolve, 1));
+  }
+}

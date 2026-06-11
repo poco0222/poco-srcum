@@ -33,7 +33,7 @@
 
 | Task | Goal | Status |
 | --- | --- | --- |
-| `task-01-portfolio-and-roadmap-view.md` | 建立项目组合与路线图主视图 | planned |
+| `task-01-portfolio-and-roadmap-view.md` | 建立项目组合与路线图主视图 | done |
 | `task-02-reporting-and-risk-tracking.md` | 建立报表口径、风险台账、依赖追踪与延期信号 | planned |
 | `task-03-subscription-weekly-summary-and-exports.md` | 建立订阅、周报和导出能力 | planned |
 

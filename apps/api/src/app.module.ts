@@ -16,6 +16,7 @@ import { DocumentTemplatesModule } from "./modules/document-templates/document-t
 import { DocumentsModule } from "./modules/documents/documents.module";
 import { LinkageModule } from "./modules/linkage/linkage.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
+import { PortfolioModule } from "./modules/portfolio/portfolio.module";
 import { ProjectsModule } from "./modules/projects/projects.module";
 import { ReviewsModule } from "./modules/reviews/reviews.module";
 import { SearchModule } from "./modules/search/search.module";
@@ -50,6 +51,7 @@ class HealthController {
     DocumentsModule,
     LinkageModule,
     NotificationsModule,
+    PortfolioModule,
     ProjectsModule,
     ReviewsModule,
     SearchModule,

@@ -133,11 +133,44 @@ export type {
 export type {
   NotificationRecord
 } from "./notifications/notification.types";
+export {
+  RoadmapMilestoneKind,
+  RoadmapMilestoneSourceType,
+  RoadmapMilestoneStatus
+} from "./portfolio/milestone.enums";
+export type {
+  RoadmapMilestoneKindValue,
+  RoadmapMilestoneSourceTypeValue,
+  RoadmapMilestoneStatusValue
+} from "./portfolio/milestone.enums";
+export {
+  PortfolioSignalSeverity,
+  buildPortfolioProjectSummary,
+  createEmptyPortfolioOverview,
+  createNeutralPortfolioSignalSnapshot,
+  createRoadmapMilestoneFromSprint,
+  filterPortfolioProjectSummaries,
+  sortRoadmapMilestones
+} from "./portfolio/portfolio.types";
+export type {
+  BuildPortfolioProjectSummaryInput,
+  PortfolioFilter,
+  PortfolioOverview,
+  PortfolioProjectSummary,
+  PortfolioSignalIndicator,
+  PortfolioSignalSeverityValue,
+  PortfolioSignalSnapshot,
+  PortfolioSourceProject,
+  RoadmapMilestone
+} from "./portfolio/portfolio.types";
 export { MemberStatus, ProjectStatus } from "./projects/project.enums";
 export type {
   MemberStatusValue,
   ProjectStatusValue
 } from "./projects/project.enums";
+export type {
+  ProjectCatalogRecord
+} from "./projects/project.types";
 export { SprintStatus } from "./sprints/sprint.enums";
 export {
   SprintAllowedTransitions,

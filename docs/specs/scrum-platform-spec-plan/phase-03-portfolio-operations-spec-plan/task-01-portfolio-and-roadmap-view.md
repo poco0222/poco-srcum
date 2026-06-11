@@ -2,7 +2,7 @@
 
 > Author: PopoY
 > Created: 2026-06-04
-> Status: planned
+> Status: done
 > Phase: P3
 > Parent Spec: `phase-03-portfolio-operations-spec.md`
 > Parent Plan: `phase-03-portfolio-operations-spec-plan.md`
@@ -86,7 +86,35 @@ P1/P2 解决的是单团队执行与文档协作；P3 的第一步必须先把�
   - `apps/web/src/features/portfolio/*`
   - `tests/e2e/portfolio/*.spec.ts`
 
+## Step Status
+
+| Step | Status | Progress | Summary |
+| --- | --- | --- | --- |
+| Setup | done | 0/6 | Branch, isolated worktree, dependency install, and baseline verification are complete. |
+| Step 1: 确认 Portfolio 视图消费字段与真实模块路径 | done | 1/6 | Frozen Portfolio consumer fields in ADR 009 and web API contract; risk/dependency/delay remain Task2-sourced read-only inputs. |
+| Step 2: 定义 Portfolio 聚合模型与里程碑结构 | done | 2/6 | Added Portfolio domain types, milestone enums, Sprint-to-milestone mapping, sorting, filtering, project summary counts, and empty overview helpers. |
+| Step 3: 实现 Portfolio API 与筛选/钻取契约测试 | done | 3/6 | Added Portfolio read-model API, filters, project drilldown, and route registration without Task2 signal formulas. |
+| Step 4: 实现 Portfolio 页面、路线图视图与空态规范 | done | 4/6 | Added URL-driven Portfolio route, API client, filters, roadmap timeline, page content, and empty/error/unauthorized state coverage. |
+| Step 5: 接入风险、依赖与延期信号展示 | done | 5/6 | Added read-only signal contract test and RiskBadges display; Portfolio still consumes Task2 signals without recalculation. |
+| Step 6: 执行 Portfolio 主路径验证 | done | 6/6 | Added Portfolio API-level e2e, route query parsing coverage, runbook, and API test glob wiring. |
+| Review Gap Fix: code review follow-up | done | review | Connected Portfolio to the read-only ProjectsService catalog, added HTTP coverage for portfolio/status filters, and added route-level query parsing coverage. |
+| Final Verification | done | final | Fresh typecheck, test, build, Prisma validate, and diff check all completed successfully. |
+
 ## Steps
+
+## Progress Log
+
+| Time | Step | Status | Evidence |
+| --- | --- | --- | --- |
+| 2026-06-11 22:03 CST | Setup | done | Created branch `codex/phase3-task1-portfolio-roadmap-view` in isolated worktree `.worktrees/phase3-task1-portfolio-roadmap-view`; confirmed `git remote get-url origin` = `https://github.com/poco0222/poco-srcum.git`; ran `corepack pnpm install --frozen-lockfile`; baseline `corepack pnpm -r --if-present typecheck`, `corepack pnpm -r --if-present test`, and `corepack pnpm -r --if-present build` all exited 0. |
+| 2026-06-11 22:18 CST | Step 1 | done | Added `docs/adr/adr-009-portfolio-view-contract.md`, `apps/web/src/features/portfolio/api/contracts.ts`, and `apps/web/src/features/portfolio/api/contracts.spec.ts`; RED failed on missing `./contracts`; GREEN passed with `corepack pnpm --filter @poco-scrum/web exec node --conditions=source --import tsx --test src/features/portfolio/api/contracts.spec.ts` (2 tests passing) and `corepack pnpm --filter @poco-scrum/web typecheck` (exit 0). |
+| 2026-06-11 22:26 CST | Step 2 | done | Added `packages/domain/src/portfolio/milestone.enums.ts`, `packages/domain/src/portfolio/portfolio.types.ts`, and `packages/domain/src/portfolio/portfolio.domain.spec.ts`; RED failed on missing `./milestone.enums`; GREEN passed with `corepack pnpm --filter @poco-scrum/domain exec node --conditions=source --import tsx --test src/portfolio/portfolio.domain.spec.ts` (4 tests passing) and `corepack pnpm --filter @poco-scrum/domain typecheck` (exit 0). |
+| 2026-06-11 22:32 CST | Step 3 | done | Added `apps/api/src/modules/portfolio/portfolio.service.ts`, `portfolio.controller.ts`, `portfolio.module.ts`, registered `PortfolioModule`, and added `apps/api/test/portfolio-aggregate.spec.ts` plus `portfolio-drilldown.spec.ts`; RED failed on missing service and `/portfolio` 404; GREEN passed with `corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test test/portfolio-aggregate.spec.ts test/portfolio-drilldown.spec.ts` (2 tests passing) and `corepack pnpm --filter @poco-scrum/api typecheck` (exit 0). |
+| 2026-06-11 22:41 CST | Step 4 | done | Added `apps/web/src/app/(authenticated)/portfolio/page.tsx`, `apps/web/src/features/portfolio/api/portfolio-client.ts`, `portfolio-filters.tsx`, `roadmap-timeline.tsx`, `portfolio-page-content.tsx`, layout styles, and component tests; RED failed on missing component modules, then exposed missing React runtime imports; GREEN passed with `corepack pnpm --filter @poco-scrum/web exec node --conditions=source --import tsx --test src/features/portfolio/components/portfolio-filters.spec.ts src/features/portfolio/components/roadmap-timeline.spec.ts src/features/portfolio/components/portfolio-page-content.spec.ts` (6 tests passing) and `corepack pnpm --filter @poco-scrum/web typecheck` (exit 0). |
+| 2026-06-11 22:45 CST | Step 5 | done | Added `apps/api/test/portfolio-signal-contract.spec.ts`, `apps/web/src/features/portfolio/components/risk-badges.tsx`, and `risk-badges.spec.ts`; RED passed API neutral-signal contract but failed web on missing `./risk-badges`; GREEN passed `corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test test/portfolio-signal-contract.spec.ts` (1 test passing), `corepack pnpm --filter @poco-scrum/web exec node --conditions=source --import tsx --test src/features/portfolio/components/risk-badges.spec.ts src/features/portfolio/components/portfolio-page-content.spec.ts` (4 tests passing), plus API and web typecheck (exit 0). |
+| 2026-06-11 22:50 CST | Step 6 | done | Added `tests/e2e/portfolio/portfolio-roadmap-flow.spec.ts`, updated `apps/api/package.json` test glob with `../../tests/e2e/portfolio/*.spec.ts`, and added `docs/runbooks/p3-portfolio-smoke-check.md`; verification passed with explicit Portfolio e2e path (1 test), `corepack pnpm --filter @poco-scrum/api test` (121 tests), `corepack pnpm --filter @poco-scrum/web exec node --conditions=source --import tsx --test src/features/portfolio/**/*.spec.ts` (9 tests), and `corepack pnpm -r --if-present build` (exit 0). |
+| 2026-06-11 22:54 CST | Review Gap Fix | done | Code review found missing real API coverage for `portfolioId`/`projectStatus` filters and optimistic route coverage wording; RED failed in `apps/api/test/portfolio-drilldown.spec.ts` with empty `portfolio-alpha` results, then GREEN passed after wiring `ProjectsService.listProjectCatalog()` into `PortfolioService`; added `apps/web/src/app/(authenticated)/portfolio/page.spec.ts`, and Portfolio web tests passed 11 assertions. |
+| 2026-06-11 22:56 CST | Final Verification | done | Fresh verification passed: `corepack pnpm -r --if-present typecheck`; `corepack pnpm -r --if-present test` (API 121, web 38, domain 33, shared 9, worker 1); `corepack pnpm -r --if-present build`; `corepack pnpm --filter @poco-scrum/api prisma:validate`; `git diff --check` exited 0 with only CRLF warnings. |
 
 ### Step 1: 确认 Portfolio 视图消费字段与真实模块路径
 
