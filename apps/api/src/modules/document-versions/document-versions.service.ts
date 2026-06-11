@@ -3,10 +3,13 @@
  * @author PopoY
  * @created 2026-06-10
  */
+import { randomUUID } from "node:crypto";
+
 import { BadRequestException, NotFoundException } from "@nestjs/common";
 
 import type {
   DocumentRecord,
+  DocumentStructuredFields,
   DocumentVersionRecord
 } from "@poco-scrum/domain";
 import {
@@ -15,10 +18,49 @@ import {
 } from "@poco-scrum/shared";
 import { DocumentsService } from "../documents/documents.service";
 
+export type PrismaDocumentVersionRow = {
+  id: string;
+  documentId: string;
+  versionNumber: number;
+  snapshot: unknown;
+  changeSummary: string;
+  createdById: string;
+  createdAt: Date;
+};
+
+type PrismaDocumentVersionDelegate = {
+  create(args: {
+    data: Record<string, unknown>;
+  }): Promise<PrismaDocumentVersionRow>;
+  findFirst(args: {
+    where: Record<string, unknown>;
+  }): Promise<PrismaDocumentVersionRow | null>;
+  findMany(args?: {
+    where?: Record<string, unknown>;
+    orderBy?: unknown;
+  }): Promise<PrismaDocumentVersionRow[]>;
+};
+
+export type PrismaDocumentVersionsClient = {
+  documentVersion?: PrismaDocumentVersionDelegate;
+  $disconnect?: () => Promise<void>;
+};
+
+/**
+ * @description Storage contract shared by document version adapters.
+ */
+export interface DocumentVersionsRepository {
+  create(version: DocumentVersionRecord): Promise<DocumentVersionRecord>;
+  getById(versionId: string): Promise<DocumentVersionRecord | null>;
+  listByDocumentId(documentId: string): Promise<DocumentVersionRecord[]>;
+}
+
 /**
  * Stores full document snapshots so review decisions can bind to immutable content.
  */
-export class InMemoryDocumentVersionsRepository {
+export class InMemoryDocumentVersionsRepository
+  implements DocumentVersionsRepository
+{
   private readonly versionsById = new Map<string, DocumentVersionRecord>();
   private readonly versionIdsByDocumentId = new Map<string, string[]>();
 
@@ -61,14 +103,109 @@ export class InMemoryDocumentVersionsRepository {
   }
 }
 
+export class PrismaDocumentVersionsRepository
+  implements DocumentVersionsRepository
+{
+  private readonly fallbackRepository =
+    new InMemoryDocumentVersionsRepository();
+  private useFallbackStorage = false;
+
+  constructor(private readonly prisma: PrismaDocumentVersionsClient) {}
+
+  /**
+   * @param version The version snapshot to persist.
+   * @returns The persisted version from Prisma or fallback storage.
+   */
+  async create(version: DocumentVersionRecord) {
+    const documentVersion = this.getDocumentVersionDelegate();
+
+    if (!documentVersion) {
+      this.enableFallbackStorage();
+
+      return this.fallbackRepository.create(version);
+    }
+
+    const row = await documentVersion.create({
+      data: toPrismaVersionData(version)
+    });
+
+    return normalizePrismaVersion(row);
+  }
+
+  /**
+   * @param versionId The version identifier to load.
+   * @returns The matching snapshot, or null.
+   */
+  async getById(versionId: string) {
+    const documentVersion = this.getDocumentVersionDelegate();
+
+    if (!documentVersion) {
+      this.enableFallbackStorage();
+
+      return this.fallbackRepository.getById(versionId);
+    }
+
+    const row = await documentVersion.findFirst({
+      where: {
+        id: versionId
+      }
+    });
+
+    return row ? normalizePrismaVersion(row) : null;
+  }
+
+  /**
+   * @param documentId The document whose snapshots should be listed.
+   * @returns Version snapshots sorted by version number.
+   */
+  async listByDocumentId(documentId: string) {
+    const documentVersion = this.getDocumentVersionDelegate();
+
+    if (!documentVersion) {
+      this.enableFallbackStorage();
+
+      return this.fallbackRepository.listByDocumentId(documentId);
+    }
+
+    const rows = await documentVersion.findMany({
+      where: {
+        documentId
+      },
+      orderBy: [{ versionNumber: "asc" }, { createdAt: "asc" }]
+    });
+
+    return rows
+      .map((row) => normalizePrismaVersion(row))
+      .sort(compareVersionsByNumber);
+  }
+
+  /**
+   * @returns The generated Prisma document version delegate, or null when unavailable.
+   */
+  private getDocumentVersionDelegate() {
+    if (this.useFallbackStorage) {
+      return null;
+    }
+
+    return this.prisma.documentVersion ?? null;
+  }
+
+  /**
+   * @description Keeps reads consistent after a fallback write path is selected.
+   */
+  private enableFallbackStorage() {
+    this.useFallbackStorage = true;
+  }
+}
+
 /**
  * Creates and reads immutable formal document snapshots for review traceability.
  */
 export class DocumentVersionsService {
   constructor(
     private readonly documentsService: DocumentsService,
-    private readonly repository: InMemoryDocumentVersionsRepository = new InMemoryDocumentVersionsRepository(),
-    private nextSequence = 1
+    private readonly repository: DocumentVersionsRepository = new InMemoryDocumentVersionsRepository(),
+    _nextSequence = 1
   ) {}
 
   /**
@@ -84,7 +221,7 @@ export class DocumentVersionsService {
     const existingVersions = await this.repository.listByDocumentId(document.id);
     const versionNumber = existingVersions.length + 1;
     const version: DocumentVersionRecord = {
-      id: `document-version-${this.nextSequence++}`,
+      id: createDocumentVersionId(),
       documentId: document.id,
       versionNumber,
       snapshot: cloneDocument(document),
@@ -156,6 +293,47 @@ function cloneVersion(version: DocumentVersionRecord): DocumentVersionRecord {
 }
 
 /**
+ * @returns A restart-safe document version identifier.
+ */
+function createDocumentVersionId() {
+  return `document-version-${randomUUID()}`;
+}
+
+/**
+ * @param version The domain version snapshot record.
+ * @returns A Prisma create data object with a JSON document snapshot.
+ */
+function toPrismaVersionData(version: DocumentVersionRecord) {
+  return {
+    id: version.id,
+    documentId: version.documentId,
+    versionNumber: version.versionNumber,
+    snapshot: cloneDocument(version.snapshot),
+    changeSummary: version.changeSummary,
+    createdById: version.createdById,
+    createdAt: new Date(version.createdAt)
+  };
+}
+
+/**
+ * @param row The raw Prisma document version row.
+ * @returns A domain version record with a normalized document snapshot.
+ */
+function normalizePrismaVersion(
+  row: PrismaDocumentVersionRow
+): DocumentVersionRecord {
+  return {
+    id: row.id,
+    documentId: row.documentId,
+    versionNumber: row.versionNumber,
+    snapshot: normalizeDocumentSnapshot(row.snapshot),
+    changeSummary: row.changeSummary,
+    createdById: row.createdById,
+    createdAt: row.createdAt.toISOString()
+  };
+}
+
+/**
  * @param document The current formal document to freeze inside a version snapshot.
  * @returns A defensive copy of the document and structured fields.
  */
@@ -166,6 +344,67 @@ function cloneDocument(document: DocumentRecord): DocumentRecord {
       ...document.structuredFields
     }
   };
+}
+
+/**
+ * @param value The Prisma JSON value stored as a document snapshot.
+ * @returns A domain document snapshot with defensive defaults.
+ */
+function normalizeDocumentSnapshot(value: unknown): DocumentRecord {
+  const snapshot =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+
+  return {
+    id: String(snapshot.id ?? ""),
+    title: String(snapshot.title ?? ""),
+    documentType: snapshot.documentType as DocumentRecord["documentType"],
+    templateId: snapshot.templateId as DocumentRecord["templateId"],
+    targetType: snapshot.targetType as DocumentRecord["targetType"],
+    targetId: String(snapshot.targetId ?? ""),
+    authorId: String(snapshot.authorId ?? ""),
+    updatedById: String(snapshot.updatedById ?? ""),
+    structuredFields: normalizeStructuredFields(snapshot.structuredFields),
+    markdown: String(snapshot.markdown ?? ""),
+    createdAt: String(snapshot.createdAt ?? ""),
+    updatedAt: String(snapshot.updatedAt ?? "")
+  };
+}
+
+/**
+ * @param value The Prisma JSON value stored for structured fields.
+ * @returns Domain-compatible structured fields.
+ */
+function normalizeStructuredFields(value: unknown): DocumentStructuredFields {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).filter(([, fieldValue]) => {
+      return (
+        fieldValue === null ||
+        typeof fieldValue === "string" ||
+        typeof fieldValue === "number" ||
+        typeof fieldValue === "boolean"
+      );
+    })
+  ) as DocumentStructuredFields;
+}
+
+/**
+ * @param left The first version to compare.
+ * @param right The second version to compare.
+ * @returns Stable version-number order.
+ */
+function compareVersionsByNumber(
+  left: DocumentVersionRecord,
+  right: DocumentVersionRecord
+) {
+  const versionOrder = left.versionNumber - right.versionNumber;
+
+  return versionOrder === 0 ? left.id.localeCompare(right.id) : versionOrder;
 }
 
 /**

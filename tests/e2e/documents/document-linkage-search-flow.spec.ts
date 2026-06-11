@@ -75,6 +75,26 @@ describe("Document linkage search flow", () => {
 
     assert.equal(linkResponse.status, 201);
 
+    const versionResponse = await fetch(
+      `${baseUrl}/documents/${requirement.id}/versions`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          actorId: "user-1",
+          changeSummary: "Initial traceable review snapshot"
+        })
+      }
+    );
+
+    assert.equal(versionResponse.status, 201);
+
+    const submittedVersion = (await versionResponse.json()) as {
+      id: string;
+    };
+
     const submitReviewResponse = await fetch(
       `${baseUrl}/documents/${requirement.id}/review/submit`,
       {
@@ -84,7 +104,7 @@ describe("Document linkage search flow", () => {
         },
         body: JSON.stringify({
           actorId: "user-1",
-          versionId: "submitted-version-1"
+          versionId: submittedVersion.id
         })
       }
     );

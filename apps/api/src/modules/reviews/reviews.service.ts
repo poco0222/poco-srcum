@@ -3,6 +3,8 @@
  * @author PopoY
  * @created 2026-06-10
  */
+import { randomUUID } from "node:crypto";
+
 import { BadRequestException } from "@nestjs/common";
 
 import {
@@ -26,10 +28,54 @@ export type LatestDocumentVersionResolver = (
   documentId: string
 ) => string | Promise<string>;
 
+type SubmittedDocumentVersion = {
+  id: string;
+  documentId: string;
+};
+
+export type SubmittedDocumentVersionResolver = (
+  versionId: string
+) => SubmittedDocumentVersion | null | Promise<SubmittedDocumentVersion | null>;
+
+export type PrismaDocumentReviewRow = {
+  id: string;
+  documentId: string;
+  status: string;
+  submittedVersionId: string;
+  submittedById: string | null;
+  submittedAt: Date | null;
+  decidedById: string | null;
+  conclusion: string | null;
+  decidedAt: Date | null;
+  updatedAt: Date;
+};
+
+type PrismaDocumentReviewDelegate = {
+  findFirst(args: {
+    where: Record<string, unknown>;
+  }): Promise<PrismaDocumentReviewRow | null>;
+  upsert(args: Record<string, unknown>): Promise<PrismaDocumentReviewRow>;
+};
+
+export type PrismaDocumentReviewsClient = {
+  documentReview?: PrismaDocumentReviewDelegate;
+  $disconnect?: () => Promise<void>;
+};
+
+/**
+ * @description Storage contract shared by document review adapters.
+ */
+export interface DocumentReviewsRepository {
+  getByDocumentId(documentId: string): Promise<DocumentReviewRecord | null>;
+  save(review: DocumentReviewRecord): Promise<DocumentReviewRecord>;
+}
+
 /**
  * Keeps one current review record per document for the P2 minimum workflow.
  */
-export class InMemoryDocumentReviewsRepository {
+export class InMemoryDocumentReviewsRepository
+  implements DocumentReviewsRepository
+{
   private readonly reviews = new Map<string, DocumentReviewRecord>();
 
   /**
@@ -52,13 +98,86 @@ export class InMemoryDocumentReviewsRepository {
   }
 }
 
+export class PrismaDocumentReviewsRepository
+  implements DocumentReviewsRepository
+{
+  private readonly fallbackRepository = new InMemoryDocumentReviewsRepository();
+  private useFallbackStorage = false;
+
+  constructor(private readonly prisma: PrismaDocumentReviewsClient) {}
+
+  /**
+   * @param documentId The document whose current review should be loaded.
+   * @returns The matching review from Prisma or fallback storage.
+   */
+  async getByDocumentId(documentId: string) {
+    const documentReview = this.getDocumentReviewDelegate();
+
+    if (!documentReview) {
+      this.enableFallbackStorage();
+
+      return this.fallbackRepository.getByDocumentId(documentId);
+    }
+
+    const row = await documentReview.findFirst({
+      where: {
+        documentId
+      }
+    });
+
+    return row ? normalizePrismaReview(row) : null;
+  }
+
+  /**
+   * @param review The current review state to persist.
+   * @returns The saved review from Prisma or fallback storage.
+   */
+  async save(review: DocumentReviewRecord) {
+    const documentReview = this.getDocumentReviewDelegate();
+
+    if (!documentReview) {
+      this.enableFallbackStorage();
+
+      return this.fallbackRepository.save(review);
+    }
+
+    const row = await documentReview.upsert({
+      where: {
+        documentId: review.documentId
+      },
+      update: toPrismaReviewData(review),
+      create: toPrismaReviewData(review)
+    });
+
+    return normalizePrismaReview(row);
+  }
+
+  /**
+   * @returns The generated Prisma review delegate, or null when unavailable.
+   */
+  private getDocumentReviewDelegate() {
+    if (this.useFallbackStorage) {
+      return null;
+    }
+
+    return this.prisma.documentReview ?? null;
+  }
+
+  /**
+   * @description Keeps reads consistent after a fallback write path is selected.
+   */
+  private enableFallbackStorage() {
+    this.useFallbackStorage = true;
+  }
+}
+
 /**
  * Coordinates the minimum formal document review lifecycle for Phase 2.
  */
 export class ReviewsService {
   constructor(
     private readonly documentsService: DocumentsService,
-    private readonly repository: InMemoryDocumentReviewsRepository = new InMemoryDocumentReviewsRepository(),
+    private readonly repository: DocumentReviewsRepository = new InMemoryDocumentReviewsRepository(),
     private readonly latestVersionResolver: LatestDocumentVersionResolver = async (
       documentId
     ) => {
@@ -66,7 +185,9 @@ export class ReviewsService {
 
       return document.updatedAt;
     },
-    private nextSequence = 1
+    private readonly submittedVersionResolver: SubmittedDocumentVersionResolver = async () =>
+      null,
+    _nextSequence = 1
   ) {}
 
   /**
@@ -77,6 +198,10 @@ export class ReviewsService {
     const payload = SubmitDocumentReviewInputSchema.parse(input);
 
     await this.documentsService.getDocumentById(payload.documentId);
+    await this.assertSubmittedVersionBelongsToDocument(
+      payload.versionId,
+      payload.documentId
+    );
 
     return this.transitionReview(payload.documentId, {
       nextStatus: DocumentReviewStatus.IN_REVIEW,
@@ -148,6 +273,10 @@ export class ReviewsService {
     nextStatus: typeof DocumentReviewStatus.APPROVED | typeof DocumentReviewStatus.REJECTED
   ) {
     await this.documentsService.getDocumentById(payload.documentId);
+    await this.assertSubmittedVersionBelongsToDocument(
+      payload.versionId,
+      payload.documentId
+    );
 
     const currentReview = await this.getCurrentReview(payload.documentId);
     // Latest version id enforces that stale submissions cannot be approved.
@@ -167,6 +296,25 @@ export class ReviewsService {
       versionId: payload.versionId,
       conclusion: payload.conclusion
     });
+  }
+
+  /**
+   * @param versionId The submitted document version id.
+   * @param documentId The document expected to own the version.
+   */
+  private async assertSubmittedVersionBelongsToDocument(
+    versionId: string,
+    documentId: string
+  ) {
+    const version = await this.submittedVersionResolver(versionId);
+
+    if (!version) {
+      throw new BadRequestException("DOCUMENT_REVIEW_VERSION_NOT_FOUND");
+    }
+
+    if (version.documentId !== documentId) {
+      throw new BadRequestException("DOCUMENT_REVIEW_VERSION_DOCUMENT_MISMATCH");
+    }
   }
 
   /**
@@ -239,7 +387,7 @@ export class ReviewsService {
     const now = new Date().toISOString();
 
     return {
-      id: `review-${this.nextSequence++}`,
+      id: createReviewId(),
       documentId,
       status: DocumentReviewStatus.DRAFT,
       submittedVersionId: "",
@@ -260,5 +408,52 @@ export class ReviewsService {
 function cloneReview(review: DocumentReviewRecord): DocumentReviewRecord {
   return {
     ...review
+  };
+}
+
+/**
+ * @returns A restart-safe document review identifier.
+ */
+function createReviewId() {
+  return `review-${randomUUID()}`;
+}
+
+/**
+ * @param review The domain review record.
+ * @returns A Prisma upsert data object with nullable decision fields.
+ */
+function toPrismaReviewData(review: DocumentReviewRecord) {
+  return {
+    id: review.id,
+    documentId: review.documentId,
+    status: review.status,
+    submittedVersionId: review.submittedVersionId,
+    submittedById: review.submittedById,
+    submittedAt: review.submittedAt ? new Date(review.submittedAt) : null,
+    decidedById: review.decidedById,
+    conclusion: review.conclusion,
+    decidedAt: review.decidedAt ? new Date(review.decidedAt) : null,
+    updatedAt: new Date(review.updatedAt)
+  };
+}
+
+/**
+ * @param row The raw Prisma document review row.
+ * @returns A domain review record with ISO datetime text.
+ */
+function normalizePrismaReview(
+  row: PrismaDocumentReviewRow
+): DocumentReviewRecord {
+  return {
+    id: row.id,
+    documentId: row.documentId,
+    status: row.status as DocumentReviewStatusValue,
+    submittedVersionId: row.submittedVersionId,
+    submittedById: row.submittedById,
+    submittedAt: row.submittedAt?.toISOString() ?? null,
+    decidedById: row.decidedById,
+    conclusion: row.conclusion,
+    decidedAt: row.decidedAt?.toISOString() ?? null,
+    updatedAt: row.updatedAt.toISOString()
   };
 }

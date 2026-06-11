@@ -5,16 +5,20 @@
  */
 import { Module } from "@nestjs/common";
 
+import { DocumentVersionsModule } from "../document-versions/document-versions.module";
+import { DocumentVersionsService } from "../document-versions/document-versions.service";
 import { DocumentsModule } from "../documents/documents.module";
 import { DocumentsService } from "../documents/documents.service";
+import { createDocumentReviewsPrismaClient } from "./reviews.prisma";
 import {
   InMemoryDocumentReviewsRepository,
+  PrismaDocumentReviewsRepository,
   ReviewsService
 } from "./reviews.service";
 import { ReviewsController } from "./reviews.controller";
 
 @Module({
-  imports: [DocumentsModule],
+  imports: [DocumentVersionsModule, DocumentsModule],
   controllers: [ReviewsController],
   providers: [
     {
@@ -23,17 +27,33 @@ import { ReviewsController } from "./reviews.controller";
     },
     {
       provide: ReviewsService,
-      inject: [DocumentsService, InMemoryDocumentReviewsRepository],
+      inject: [
+        DocumentsService,
+        InMemoryDocumentReviewsRepository,
+        DocumentVersionsService
+      ],
       /**
        * @param documentsService The existing formal document service dependency.
        * @param repository The in-memory review repository shared by this module.
+       * @param versionsService The version service used to resolve latest approved snapshots.
        * @returns The reviews service wired to existing document reads.
        */
-      useFactory(
+      async useFactory(
         documentsService: DocumentsService,
-        repository: InMemoryDocumentReviewsRepository
+        repository: InMemoryDocumentReviewsRepository,
+        versionsService: DocumentVersionsService
       ) {
-        return new ReviewsService(documentsService, repository);
+        const prisma = await createDocumentReviewsPrismaClient();
+        const reviewsRepository = prisma
+          ? new PrismaDocumentReviewsRepository(prisma)
+          : repository;
+
+        return new ReviewsService(
+          documentsService,
+          reviewsRepository,
+          (documentId) => versionsService.getLatestVersionId(documentId),
+          (versionId) => versionsService.getVersionById(versionId)
+        );
       }
     }
   ],

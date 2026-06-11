@@ -8,9 +8,11 @@ import { Module } from "@nestjs/common";
 import { DocumentsModule } from "../documents/documents.module";
 import { DocumentsService } from "../documents/documents.service";
 import { DocumentVersionsController } from "./document-versions.controller";
+import { createDocumentVersionsPrismaClient } from "./document-versions.prisma";
 import {
   DocumentVersionsService,
-  InMemoryDocumentVersionsRepository
+  InMemoryDocumentVersionsRepository,
+  PrismaDocumentVersionsRepository
 } from "./document-versions.service";
 
 @Module({
@@ -29,11 +31,16 @@ import {
        * @param repository The in-memory version repository shared by this module.
        * @returns The document versions service wired to existing document reads.
        */
-      useFactory(
+      async useFactory(
         documentsService: DocumentsService,
         repository: InMemoryDocumentVersionsRepository
       ) {
-        return new DocumentVersionsService(documentsService, repository);
+        const prisma = await createDocumentVersionsPrismaClient();
+        const versionsRepository = prisma
+          ? new PrismaDocumentVersionsRepository(prisma)
+          : repository;
+
+        return new DocumentVersionsService(documentsService, versionsRepository);
       }
     }
   ],

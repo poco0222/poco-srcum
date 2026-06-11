@@ -3,6 +3,8 @@
  * @author PopoY
  * @created 2026-06-10
  */
+import { randomUUID } from "node:crypto";
+
 import { BadRequestException, ForbiddenException } from "@nestjs/common";
 
 import {
@@ -27,10 +29,52 @@ export type DocumentCommentAccessPolicy = (
   input: DocumentCommentAccessInput
 ) => boolean | Promise<boolean>;
 
+export type PrismaDocumentCommentRow = {
+  id: string;
+  documentId: string;
+  parentCommentId: string | null;
+  authorId: string;
+  anchorType: string;
+  anchorRef: string;
+  body: string;
+  mentionedUserIds: unknown;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type PrismaDocumentCommentDelegate = {
+  create(args: {
+    data: Record<string, unknown>;
+  }): Promise<PrismaDocumentCommentRow>;
+  findFirst(args: {
+    where: Record<string, unknown>;
+  }): Promise<PrismaDocumentCommentRow | null>;
+  findMany(args?: {
+    where?: Record<string, unknown>;
+    orderBy?: unknown;
+  }): Promise<PrismaDocumentCommentRow[]>;
+};
+
+export type PrismaDocumentCommentsClient = {
+  documentComment?: PrismaDocumentCommentDelegate;
+  $disconnect?: () => Promise<void>;
+};
+
+/**
+ * @description Storage contract shared by document comment adapters.
+ */
+export interface DocumentCommentsRepository {
+  create(comment: DocumentCommentRecord): Promise<DocumentCommentRecord>;
+  getById(commentId: string): Promise<DocumentCommentRecord | null>;
+  listByDocumentId(documentId: string): Promise<DocumentCommentRecord[]>;
+}
+
 /**
  * Keep comment persistence in-memory while the task freezes collaboration semantics.
  */
-export class InMemoryDocumentCommentsRepository {
+export class InMemoryDocumentCommentsRepository
+  implements DocumentCommentsRepository
+{
   private readonly comments = new Map<string, DocumentCommentRecord>();
 
   /**
@@ -64,6 +108,101 @@ export class InMemoryDocumentCommentsRepository {
   }
 }
 
+export class PrismaDocumentCommentsRepository
+  implements DocumentCommentsRepository
+{
+  private readonly fallbackRepository =
+    new InMemoryDocumentCommentsRepository();
+  private useFallbackStorage = false;
+
+  constructor(private readonly prisma: PrismaDocumentCommentsClient) {}
+
+  /**
+   * @param comment The comment record to persist.
+   * @returns The persisted comment from Prisma or fallback storage.
+   */
+  async create(comment: DocumentCommentRecord) {
+    const documentComment = this.getDocumentCommentDelegate();
+
+    if (!documentComment) {
+      this.enableFallbackStorage();
+
+      return this.fallbackRepository.create(comment);
+    }
+
+    const row = await documentComment.create({
+      data: toPrismaCommentData(comment)
+    });
+
+    return normalizePrismaComment(row);
+  }
+
+  /**
+   * @param commentId The comment identifier to load.
+   * @returns The matching comment or null.
+   */
+  async getById(commentId: string) {
+    const documentComment = this.getDocumentCommentDelegate();
+
+    if (!documentComment) {
+      this.enableFallbackStorage();
+
+      return this.fallbackRepository.getById(commentId);
+    }
+
+    const row = await documentComment.findFirst({
+      where: {
+        id: commentId
+      }
+    });
+
+    return row ? normalizePrismaComment(row) : null;
+  }
+
+  /**
+   * @param documentId The document whose comments should be listed.
+   * @returns Oldest-first comments from Prisma or fallback storage.
+   */
+  async listByDocumentId(documentId: string) {
+    const documentComment = this.getDocumentCommentDelegate();
+
+    if (!documentComment) {
+      this.enableFallbackStorage();
+
+      return this.fallbackRepository.listByDocumentId(documentId);
+    }
+
+    const rows = await documentComment.findMany({
+      where: {
+        documentId
+      },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }]
+    });
+
+    return rows
+      .map((row) => normalizePrismaComment(row))
+      .sort(compareCommentsByCreatedAt);
+  }
+
+  /**
+   * @returns The generated Prisma comment delegate, or null when unavailable.
+   */
+  private getDocumentCommentDelegate() {
+    if (this.useFallbackStorage) {
+      return null;
+    }
+
+    return this.prisma.documentComment ?? null;
+  }
+
+  /**
+   * @description Keeps reads consistent after a fallback write path is selected.
+   */
+  private enableFallbackStorage() {
+    this.useFallbackStorage = true;
+  }
+}
+
 /**
  * Coordinates comment creation, reply validation, and mention notifications.
  */
@@ -71,9 +210,9 @@ export class CommentsService {
   constructor(
     private readonly documentsService: DocumentsService,
     private readonly notificationsService?: NotificationsService,
-    private readonly repository: InMemoryDocumentCommentsRepository = new InMemoryDocumentCommentsRepository(),
+    private readonly repository: DocumentCommentsRepository = new InMemoryDocumentCommentsRepository(),
     private readonly canComment: DocumentCommentAccessPolicy = () => true,
-    private nextSequence = 1
+    _nextSequence = 1
   ) {}
 
   /**
@@ -105,7 +244,7 @@ export class CommentsService {
     // Mention ids drive the notification fan-out after the comment is persisted.
     const mentionedUserIds = parseCommentMentionTokens(payload.body);
     const comment: DocumentCommentRecord = {
-      id: `comment-${this.nextSequence++}`,
+      id: createCommentId(),
       documentId: payload.documentId,
       parentCommentId: payload.parentCommentId ?? null,
       authorId: payload.authorId,
@@ -187,6 +326,77 @@ function cloneComment(comment: DocumentCommentRecord): DocumentCommentRecord {
     ...comment,
     mentionedUserIds: [...comment.mentionedUserIds]
   };
+}
+
+/**
+ * @returns A restart-safe document comment identifier.
+ */
+function createCommentId() {
+  return `comment-${randomUUID()}`;
+}
+
+/**
+ * @param comment The domain comment record.
+ * @returns A Prisma create data object with Date values.
+ */
+function toPrismaCommentData(comment: DocumentCommentRecord) {
+  return {
+    id: comment.id,
+    documentId: comment.documentId,
+    parentCommentId: comment.parentCommentId,
+    authorId: comment.authorId,
+    anchorType: comment.anchorType,
+    anchorRef: comment.anchorRef,
+    body: comment.body,
+    mentionedUserIds: comment.mentionedUserIds,
+    createdAt: new Date(comment.createdAt),
+    updatedAt: new Date(comment.updatedAt)
+  };
+}
+
+/**
+ * @param row The raw Prisma document comment row.
+ * @returns A domain comment record with normalized JSON and ISO datetime text.
+ */
+function normalizePrismaComment(
+  row: PrismaDocumentCommentRow
+): DocumentCommentRecord {
+  return {
+    id: row.id,
+    documentId: row.documentId,
+    parentCommentId: row.parentCommentId,
+    authorId: row.authorId,
+    anchorType: row.anchorType as DocumentCommentRecord["anchorType"],
+    anchorRef: row.anchorRef,
+    body: row.body,
+    mentionedUserIds: normalizeMentionedUserIds(row.mentionedUserIds),
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString()
+  };
+}
+
+/**
+ * @param value The Prisma JSON value for mentioned user ids.
+ * @returns Plain string ids safe for notification fan-out.
+ */
+function normalizeMentionedUserIds(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter((userId): userId is string => typeof userId === "string")
+    : [];
+}
+
+/**
+ * @param left The first comment to compare.
+ * @param right The second comment to compare.
+ * @returns Stable oldest-first order.
+ */
+function compareCommentsByCreatedAt(
+  left: DocumentCommentRecord,
+  right: DocumentCommentRecord
+) {
+  const createdAtOrder = left.createdAt.localeCompare(right.createdAt);
+
+  return createdAtOrder === 0 ? left.id.localeCompare(right.id) : createdAtOrder;
 }
 
 /**

@@ -181,8 +181,9 @@
   2. 在文档详情页增加评论面板，展示锚点、正文、回复链。
   3. 让 Step 2 的测试转为通过，并补一个前端展示测试。
 - Commands:
-  - `pnpm --filter api test -- document-comments`
-  - `pnpm --filter web test -- comments`
+  - `corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test test/document-comments.spec.ts`
+  - `corepack pnpm --filter @poco-scrum/web exec node --conditions=source --import tsx --test src/features/documents/review/comments/comment-panel.spec.ts`
+  - `corepack pnpm --filter @poco-scrum/web exec node --conditions=source --import tsx --test src/features/notifications/__tests__/notifications.spec.ts`
 - Expected Output:
   - 评论模块
   - 前端评论面板
@@ -199,8 +200,8 @@
   - `apps/web/src/features/documents/review/comments/comment-panel.spec.ts`
   - `corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test test/document-comments.spec.ts`：3 tests, 3 pass
   - `corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test test/document-mentions.spec.ts`：1 test, 1 pass
-  - `corepack pnpm --filter @poco-scrum/web test -- comment-panel`：18 tests, 18 pass
-  - `corepack pnpm --filter @poco-scrum/web test -- notifications`：18 tests, 18 pass
+  - `corepack pnpm --filter @poco-scrum/web exec node --conditions=source --import tsx --test src/features/documents/review/comments/comment-panel.spec.ts`：1 test, 1 pass
+  - `corepack pnpm --filter @poco-scrum/web exec node --conditions=source --import tsx --test src/features/notifications/__tests__/notifications.spec.ts`：1 test, 1 pass
   - `corepack pnpm --filter @poco-scrum/domain typecheck`：exit 0
   - `corepack pnpm --filter @poco-scrum/shared typecheck`：exit 0
   - `corepack pnpm --filter @poco-scrum/api typecheck`：exit 0
@@ -306,9 +307,9 @@
   2. 实现版本历史页，展示版本号、摘要、时间和操作人。
   3. 在前端阻止对非最新版本执行评审批准动作。
 - Commands:
-  - `pnpm --filter web test -- document-review`
-  - `pnpm --filter web test -- document-versions`
-  - `pnpm --filter web build`
+  - `corepack pnpm --filter @poco-scrum/web exec node --conditions=source --import tsx --test src/features/documents/review/review-panel.spec.ts`
+  - `corepack pnpm --filter @poco-scrum/web exec node --conditions=source --import tsx --test src/features/documents/versions/version-history.spec.ts`
+  - `corepack pnpm --filter @poco-scrum/web build`
 - Expected Output:
   - 评审页
   - 版本历史页
@@ -323,8 +324,8 @@
   - `apps/web/src/app/(authenticated)/documents/[documentId]/review/page.tsx`
   - `apps/web/src/app/(authenticated)/documents/[documentId]/versions/page.tsx`
   - `apps/web/src/features/documents/api/documents-client.ts`
-  - `corepack pnpm --filter @poco-scrum/web test -- document-review`：20 tests, 20 pass
-  - `corepack pnpm --filter @poco-scrum/web test -- document-versions`：20 tests, 20 pass
+  - `corepack pnpm --filter @poco-scrum/web exec node --conditions=source --import tsx --test src/features/documents/review/review-panel.spec.ts`：1 test, 1 pass
+  - `corepack pnpm --filter @poco-scrum/web exec node --conditions=source --import tsx --test src/features/documents/versions/version-history.spec.ts`：1 test, 1 pass
   - `corepack pnpm --filter @poco-scrum/web typecheck`：exit 0
   - `corepack pnpm --filter @poco-scrum/web build`：exit 0，`/documents/[documentId]/review` 与 `/documents/[documentId]/versions` 构建成功
 - Notes:
@@ -358,11 +359,42 @@
   - `corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test ../../tests/e2e/documents/document-review-flow.spec.ts`：1 test, 1 pass
   - `corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test test/document-comments.spec.ts test/document-mentions.spec.ts test/document-review-flow.spec.ts test/document-versioning.spec.ts ../../tests/e2e/documents/document-review-flow.spec.ts`：9 tests, 9 pass
   - `corepack pnpm --filter @poco-scrum/domain test -- comment-anchor review`：25 tests, 25 pass
-  - `corepack pnpm --filter @poco-scrum/web test -- comment-panel document-review document-versions notifications`：20 tests, 20 pass
+  - `corepack pnpm --filter @poco-scrum/web exec node --conditions=source --import tsx --test src/features/documents/review/comments/comment-panel.spec.ts`：1 test, 1 pass
+  - `corepack pnpm --filter @poco-scrum/web exec node --conditions=source --import tsx --test src/features/notifications/__tests__/notifications.spec.ts`：1 test, 1 pass
+  - `corepack pnpm --filter @poco-scrum/web exec node --conditions=source --import tsx --test src/features/documents/review/review-panel.spec.ts`：1 test, 1 pass
+  - `corepack pnpm --filter @poco-scrum/web exec node --conditions=source --import tsx --test src/features/documents/versions/version-history.spec.ts`：1 test, 1 pass
   - `corepack pnpm --filter @poco-scrum/domain typecheck && corepack pnpm --filter @poco-scrum/shared typecheck && corepack pnpm --filter @poco-scrum/api typecheck && corepack pnpm --filter @poco-scrum/web typecheck`：exit 0
-  - `corepack pnpm -r --if-present test`：131 tests, 131 pass
+  - `corepack pnpm -r --if-present test`：183 tests, 183 pass
   - `corepack pnpm -r --if-present build`：exit 0，包含 `/documents/[documentId]/review` 与 `/documents/[documentId]/versions`
   - `corepack pnpm --filter @poco-scrum/api prisma:validate`：exit 0
   - `git diff --check`：仅 CRLF 提示，无 whitespace error
 - Notes:
   - 搜索与仪表盘在下一 task 承接
+
+### Review Follow-up: 补齐文档协作持久化证据
+
+- Goal: 将评论、评审、版本历史和正式文档运行时仓储从单纯 `in-memory`（内存）证据补强为可落库的 Prisma adapter（Prisma 适配器）证据
+- Why: Phase2 复核发现“系统内沉淀 / 可追溯”的 completion claim（完成声明）强于原内存态实现
+- Target Files/Paths:
+  - `<implementation-repo>/apps/api/prisma/schema.prisma`
+  - `<implementation-repo>/apps/api/prisma/migrations/20260611193000_phase2_document_collaboration_persistence/migration.sql`
+  - `<implementation-repo>/apps/api/src/modules/documents/*`
+  - `<implementation-repo>/apps/api/src/modules/comments/*`
+  - `<implementation-repo>/apps/api/src/modules/reviews/*`
+  - `<implementation-repo>/apps/api/src/modules/document-versions/*`
+  - `<implementation-repo>/apps/api/test/document-prisma.spec.ts`
+  - `<implementation-repo>/apps/api/test/document-comments-prisma.spec.ts`
+  - `<implementation-repo>/apps/api/test/document-reviews-prisma.spec.ts`
+  - `<implementation-repo>/apps/api/test/document-versions-prisma.spec.ts`
+  - `<implementation-repo>/apps/api/test/document-persistence-ids.spec.ts`
+  - `<implementation-repo>/apps/api/test/document-review-flow.spec.ts`
+- Actions:
+  1. 为 `Document` 补齐 `documentType/templateId` 落库字段。
+  2. 新增 `DocumentComment`、`DocumentReview`、`DocumentVersion` Prisma models（Prisma 模型）与 migration（迁移）。
+  3. 为 documents/comments/reviews/document-versions 补 repository interface（仓储接口）和 Prisma adapter（Prisma 适配器）。
+  4. 保留 `in-memory`（内存）实现作为本地 fallback（回退）和单元测试路径。
+- Evidence:
+  - `corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test test/document-prisma.spec.ts test/document-comments-prisma.spec.ts test/document-reviews-prisma.spec.ts test/document-versions-prisma.spec.ts`：16 tests, 16 pass
+  - `corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test test/document-review-flow.spec.ts test/document-versioning.spec.ts test/document-persistence-ids.spec.ts test/document-prisma.spec.ts test/document-comments-prisma.spec.ts test/document-reviews-prisma.spec.ts test/document-versions-prisma.spec.ts ../../tests/e2e/documents/document-review-flow.spec.ts`：27 tests, 27 pass
+  - `corepack pnpm --filter @poco-scrum/api typecheck`：exit 0
+  - `corepack pnpm --filter @poco-scrum/api prisma:validate`：exit 0

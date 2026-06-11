@@ -109,7 +109,8 @@ describe("Document versioning", () => {
     const reviewsService = new ReviewsService(
       documentsService,
       new InMemoryDocumentReviewsRepository(),
-      (documentId) => versionsService.getLatestVersionId(documentId)
+      (documentId) => versionsService.getLatestVersionId(documentId),
+      (versionId) => versionsService.getVersionById(versionId)
     );
 
     await reviewsService.submitReview({
@@ -130,7 +131,8 @@ describe("Document versioning", () => {
     const staleReviewService = new ReviewsService(
       documentsService,
       new InMemoryDocumentReviewsRepository(),
-      (documentId) => versionsService.getLatestVersionId(documentId)
+      (documentId) => versionsService.getLatestVersionId(documentId),
+      (versionId) => versionsService.getVersionById(versionId)
     );
 
     await staleReviewService.submitReview({

@@ -34,8 +34,10 @@
 ```powershell
 corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test ../../tests/e2e/documents/document-review-flow.spec.ts
 corepack pnpm --filter @poco-scrum/api exec tsx --conditions=source --tsconfig tsconfig.json --test test/document-comments.spec.ts test/document-mentions.spec.ts test/document-review-flow.spec.ts test/document-versioning.spec.ts
-corepack pnpm --filter @poco-scrum/web test -- document-review
-corepack pnpm --filter @poco-scrum/web test -- document-versions
+corepack pnpm --filter @poco-scrum/web exec node --conditions=source --import tsx --test src/features/documents/review/comments/comment-panel.spec.ts
+corepack pnpm --filter @poco-scrum/web exec node --conditions=source --import tsx --test src/features/notifications/__tests__/notifications.spec.ts
+corepack pnpm --filter @poco-scrum/web exec node --conditions=source --import tsx --test src/features/documents/review/review-panel.spec.ts
+corepack pnpm --filter @poco-scrum/web exec node --conditions=source --import tsx --test src/features/documents/versions/version-history.spec.ts
 ```
 
 ## Expected Result

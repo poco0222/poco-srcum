@@ -15,7 +15,11 @@ import { NotificationsService } from "../notifications/notifications.service";
 import { DocumentLinksService } from "./document-links.service";
 import { DocumentRelationsService } from "./document-relations.service";
 import { DocumentsController } from "./documents.controller";
-import { InMemoryDocumentsRepository } from "./documents.repository";
+import { createDocumentsPrismaClient } from "./documents.prisma";
+import {
+  InMemoryDocumentsRepository,
+  PrismaDocumentsRepository
+} from "./documents.repository";
 import { DocumentsService } from "./documents.service";
 
 @Module({
@@ -39,14 +43,19 @@ import { DocumentsService } from "./documents.service";
         MinimalAuditService,
         DocumentTemplatesService
       ],
-      useFactory(
+      async useFactory(
         repository: InMemoryDocumentsRepository,
         notificationsService: NotificationsService,
         auditService: MinimalAuditService,
         templatesService: DocumentTemplatesService
       ) {
+        const prisma = await createDocumentsPrismaClient();
+        const documentsRepository = prisma
+          ? new PrismaDocumentsRepository(prisma)
+          : repository;
+
         return new DocumentsService(
-          repository,
+          documentsRepository,
           1,
           notificationsService,
           auditService,

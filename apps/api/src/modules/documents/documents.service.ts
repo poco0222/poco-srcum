@@ -3,6 +3,8 @@
  * @author PopoY
  * @created 2026-06-04
  */
+import { randomUUID } from "node:crypto";
+
 import { BadRequestException, NotFoundException } from "@nestjs/common";
 
 import { NotificationEventType, type DocumentRecord } from "@poco-scrum/domain";
@@ -17,12 +19,15 @@ import {
 import { MinimalAuditService } from "../audit/minimal-audit.service";
 import { DocumentTemplatesService } from "../document-templates/document-templates.service";
 import { NotificationsService } from "../notifications/notifications.service";
-import { InMemoryDocumentsRepository } from "./documents.repository";
+import {
+  InMemoryDocumentsRepository,
+  type DocumentsRepository
+} from "./documents.repository";
 
 export class DocumentsService {
   constructor(
-    private readonly repository: InMemoryDocumentsRepository = new InMemoryDocumentsRepository(),
-    private nextSequence = 1,
+    private readonly repository: DocumentsRepository = new InMemoryDocumentsRepository(),
+    _nextSequence = 1,
     private readonly notificationsService?: NotificationsService,
     private readonly auditService?: MinimalAuditService,
     private readonly templatesService: DocumentTemplatesService = new DocumentTemplatesService()
@@ -36,7 +41,7 @@ export class DocumentsService {
     const payload = CreateDocumentInputSchema.parse(input);
     const now = new Date().toISOString();
     const document: DocumentRecord = {
-      id: `document-${this.nextSequence++}`,
+      id: createDocumentId(),
       title: payload.title,
       targetType: payload.targetType,
       targetId: payload.targetId,
@@ -71,7 +76,7 @@ export class DocumentsService {
 
     const now = new Date().toISOString();
     const document: DocumentRecord = {
-      id: `document-${this.nextSequence++}`,
+      id: createDocumentId(),
       title: payload.title,
       documentType: payload.documentType,
       templateId: payload.templateId,
@@ -173,4 +178,11 @@ export class DocumentsService {
   async listAllDocuments() {
     return this.repository.listAll();
   }
+}
+
+/**
+ * @returns A restart-safe formal document identifier.
+ */
+function createDocumentId() {
+  return `document-${randomUUID()}`;
 }

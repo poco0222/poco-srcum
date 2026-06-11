@@ -93,6 +93,10 @@ model User {
   authoredDocuments Document[] @relation("DocumentAuthor")
   updatedDocuments Document[] @relation("DocumentUpdater")
   createdDocumentTemplates DocumentTemplate[]
+  documentComments DocumentComment[]
+  submittedDocumentReviews DocumentReview[] @relation("DocumentReviewSubmitter")
+  decidedDocumentReviews DocumentReview[] @relation("DocumentReviewDecider")
+  createdDocumentVersions DocumentVersion[]
   documentAttachments DocumentAttachment[]
   documentLinks DocumentLink[]
   createdObjectLinks ObjectLink[]
@@ -255,6 +259,8 @@ model StoryAcceptanceRecord {
 model Document {
   id                String             @id @default(uuid())
   title             String
+  documentType      DocumentType?
+  templateId        String?
   targetType        DocumentTargetType
   targetId          String
   authorId          String
@@ -263,11 +269,17 @@ model Document {
   markdown          String
   author            User               @relation("DocumentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
   updatedBy         User               @relation("DocumentUpdater", fields: [updatedById], references: [id], onDelete: Cascade)
+  template          DocumentTemplate?   @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  comments          DocumentComment[]
+  review            DocumentReview?
+  versions          DocumentVersion[]
   attachments       DocumentAttachment[]
   links             DocumentLink[]
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
+  @@index([documentType])
+  @@index([templateId])
   @@index([targetType, targetId])
   @@index([authorId, createdAt])
 }
@@ -283,6 +295,7 @@ model DocumentTemplate {
   isDefault         Boolean
   createdById       String
   createdBy         User         @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  documents         Document[]
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
@@ -319,6 +332,65 @@ model DocumentLink {
 
   @@index([targetType, targetId])
   @@index([documentId, createdAt])
+}
+
+model DocumentComment {
+  id                String             @id @default(uuid())
+  documentId        String
+  parentCommentId   String?
+  authorId          String
+  anchorType        String
+  anchorRef         String
+  body              String
+  mentionedUserIds  Json
+  document          Document           @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  parentComment     DocumentComment?   @relation("DocumentCommentReplies", fields: [parentCommentId], references: [id], onDelete: SetNull)
+  replies           DocumentComment[]  @relation("DocumentCommentReplies")
+  author            User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([documentId, createdAt])
+  @@index([parentCommentId])
+  @@index([authorId, createdAt])
+}
+
+model DocumentReview {
+  id                  String    @id @default(uuid())
+  documentId          String    @unique
+  status              String
+  submittedVersionId  String
+  submittedById       String?
+  submittedAt         DateTime?
+  decidedById         String?
+  conclusion          String?
+  decidedAt           DateTime?
+  document            Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  submittedVersion    DocumentVersion @relation(fields: [submittedVersionId], references: [id], onDelete: Restrict)
+  submittedBy         User?     @relation("DocumentReviewSubmitter", fields: [submittedById], references: [id], onDelete: SetNull)
+  decidedBy           User?     @relation("DocumentReviewDecider", fields: [decidedById], references: [id], onDelete: SetNull)
+  updatedAt           DateTime  @updatedAt
+
+  @@index([status, updatedAt])
+  @@index([submittedById, submittedAt])
+  @@index([decidedById, decidedAt])
+}
+
+model DocumentVersion {
+  id             String    @id @default(uuid())
+  documentId     String
+  versionNumber  Int
+  snapshot       Json
+  changeSummary  String
+  createdById    String
+  document       Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  createdBy      User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  reviews        DocumentReview[]
+  createdAt      DateTime  @default(now())
+
+  @@unique([documentId, versionNumber])
+  @@index([documentId, createdAt])
+  @@index([createdById, createdAt])
 }
 
 model ObjectLink {

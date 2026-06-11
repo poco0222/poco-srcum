@@ -159,7 +159,7 @@
 | --- | --- |
 | Master roadmap | done |
 | P1 spec | planned |
-| P2 spec | planned |
+| P2 spec | done |
 | P3 spec | planned |
 | P4 spec | planned |
-| Phase task plans | planned |
+| Phase task plans | done |

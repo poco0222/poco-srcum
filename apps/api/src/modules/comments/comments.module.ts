@@ -10,9 +10,11 @@ import { DocumentsService } from "../documents/documents.service";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { NotificationsService } from "../notifications/notifications.service";
 import { CommentsController } from "./comments.controller";
+import { createDocumentCommentsPrismaClient } from "./comments.prisma";
 import {
   CommentsService,
-  InMemoryDocumentCommentsRepository
+  InMemoryDocumentCommentsRepository,
+  PrismaDocumentCommentsRepository
 } from "./comments.service";
 
 @Module({
@@ -36,15 +38,20 @@ import {
        * @param repository The in-memory comment repository shared by this module.
        * @returns The comments service wired to existing document and notification modules.
        */
-      useFactory(
+      async useFactory(
         documentsService: DocumentsService,
         notificationsService: NotificationsService,
         repository: InMemoryDocumentCommentsRepository
       ) {
+        const prisma = await createDocumentCommentsPrismaClient();
+        const commentsRepository = prisma
+          ? new PrismaDocumentCommentsRepository(prisma)
+          : repository;
+
         return new CommentsService(
           documentsService,
           notificationsService,
-          repository
+          commentsRepository
         );
       }
     }

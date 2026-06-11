@@ -42,7 +42,8 @@ describe("Document review and versioning flow", () => {
     const reviewsService = new ReviewsService(
       documentsService,
       new InMemoryDocumentReviewsRepository(),
-      (documentId) => versionsService.getLatestVersionId(documentId)
+      (documentId) => versionsService.getLatestVersionId(documentId),
+      (versionId) => versionsService.getVersionById(versionId)
     );
     const document = await documentsService.createFormalDocument({
       title: "Reviewable Requirement",
